@@ -92,26 +92,29 @@ public static class Program {
         ImmediateMode.End3DMode();
         ImmediateMode.ClearBackground(new Color32(39, 47, 55));
         if(POSITIONS.Count >= renderLimit) {
-            if(renderingMode == "C") {
+            switch(renderingMode) {
+            case "C":
                 BatchMode2D.StartBatch(texture);
                 for(int i = 0; i < renderLimit; i++) {
+                    var rotation = Quaternion.CreateFromYawPitchRoll((float)Time.unscaledTime, (float)Time.unscaledTime,
+                                                                             (float)Time.unscaledTime);
                     BatchMode2D.DrawSubimage(SKIN[i % SKIN.Length], new Vector4(POSITIONS[i].X, POSITIONS[i].Y, 64f, 64f), new Vector2(0.5f, 0.5f),
-                                             Quaternion.CreateFromYawPitchRoll((float)Time.unscaledTime, (float)Time.unscaledTime,
-                                                                               (float)Time.unscaledTime), ColorF.WHITE);
+                                             rotation, ColorF.WHITE);
                 }
                 BatchMode2D.Render();
-            }
-            else if(renderingMode == "X") {
+                break;
+            case "X":
                 BatchMode2D.StartBatch(texture);
                 for(int i = 0; i < renderLimit; i++) {
                     BatchMode2D.DrawSubimage(SKIN[i % SKIN.Length], POSITIONS[i], ColorF.WHITE);
                 }
                 BatchMode2D.Render();
-            }
-            else {
+                break;
+            default:
                 for(int i = 0; i < renderLimit; i++) {
                     ImmediateMode.DrawSubimage(SKIN[i % SKIN.Length], POSITIONS[i], Color32.WHITE);
                 }
+                break;
             }
         }
         using Utf8ValueStringBuilder builder = ZString.CreateUtf8StringBuilder();
@@ -125,6 +128,8 @@ public static class Program {
         builder.Append(Time.AverageUpdateTime * 1000.0, DOUBLE_DECIMAL_FORMAT);
         builder.Append(" ms, R: ");
         builder.Append(Time.AverageRenderTime * 1000.0, DOUBLE_DECIMAL_FORMAT);
+        builder.Append(" ms, O: ");
+        builder.Append(Time.AverageOverheadTime * 1000.0, DOUBLE_DECIMAL_FORMAT);
         builder.AppendLine(" ms");
         builder.Append(renderLimit);
         builder.Append(" sprites ");

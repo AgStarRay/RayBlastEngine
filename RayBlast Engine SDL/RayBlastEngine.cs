@@ -334,9 +334,9 @@ public static unsafe class RayBlastEngine {
                 try {
                     Time.renderedFrameCount++;
                     SDL.SetRenderVSync(renderer, Graphics.VSyncCount);
-                    var renderStart = WATCH.ElapsedTicks;
+                    var renderStart = Stopwatch.GetTimestamp();
                     renderMethod();
-                    Time.accumulatedRenderTime += (WATCH.ElapsedTicks - renderStart) / (double)TimeSpan.TicksPerSecond;
+                    Time.accumulatedRenderTime += (Stopwatch.GetTimestamp() - renderStart) / (double)TimeSpan.TicksPerSecond;
                 }
                 catch(Exception e) {
                     // Raylib.DrawText("RENDER FAILURE", 1, 1, 16, Color.Black);
@@ -487,9 +487,9 @@ public static unsafe class RayBlastEngine {
     //TODO: Add the ability to disable async update
     private static void GameUpdate() {
         try {
-            var updateStart = WATCH.ElapsedTicks;
+            var updateStart = Stopwatch.GetTimestamp();
             updateMethod?.Invoke();
-            Time.accumulatedUpdateTime += (WATCH.ElapsedTicks - updateStart) / (double)TimeSpan.TicksPerSecond;
+            Time.accumulatedUpdateTime += (Stopwatch.GetTimestamp() - updateStart) / (double)TimeSpan.TicksPerSecond;
         }
         catch(Exception e) {
             Debug.LogException(e);

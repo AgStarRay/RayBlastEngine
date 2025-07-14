@@ -9,7 +9,7 @@
         <Configurations>RayBlast Release;RayBlast Debug;RayBlast Trace;RayBlast WebGL</Configurations>
         <Platforms>AnyCPU;browser-wasm</Platforms>
         <LangVersion>default</LangVersion>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
     </PropertyGroup>
 
     <PropertyGroup Condition=" $(Configuration.EndsWith('Release')) ">
