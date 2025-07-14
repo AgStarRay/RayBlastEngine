@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RayBlast Engine SDL", "RayBlast Engine SDL\RayBlast Engine SDL.csproj", "{F41898E5-DB35-4786-B821-7CBD3DF84761}"
+	ProjectSection(ProjectDependencies) = postProject
+		{41859CBD-445B-4E58-B2AA-3E495101969A} = {41859CBD-445B-4E58-B2AA-3E495101969A}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RayBlast Engine Core", "RayBlast Engine Core\RayBlast Engine Core.csproj", "{41859CBD-445B-4E58-B2AA-3E495101969A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trial", "Trial\Trial.csproj", "{9474A9AA-FB12-4242-90DA-34F43589CB9F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		RayBlast Release|Any CPU = RayBlast Release|Any CPU
+		RayBlast Debug|Any CPU = RayBlast Debug|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{41859CBD-445B-4E58-B2AA-3E495101969A}.RayBlast Release|Any CPU.ActiveCfg = RayBlast Release|Any CPU
+		{41859CBD-445B-4E58-B2AA-3E495101969A}.RayBlast Release|Any CPU.Build.0 = RayBlast Release|Any CPU
+		{41859CBD-445B-4E58-B2AA-3E495101969A}.RayBlast Debug|Any CPU.ActiveCfg = RayBlast Debug|Any CPU
+		{41859CBD-445B-4E58-B2AA-3E495101969A}.RayBlast Debug|Any CPU.Build.0 = RayBlast Debug|Any CPU
+		{F41898E5-DB35-4786-B821-7CBD3DF84761}.RayBlast Release|Any CPU.ActiveCfg = RayBlast Release|Any CPU
+		{F41898E5-DB35-4786-B821-7CBD3DF84761}.RayBlast Release|Any CPU.Build.0 = RayBlast Release|Any CPU
+		{F41898E5-DB35-4786-B821-7CBD3DF84761}.RayBlast Debug|Any CPU.ActiveCfg = RayBlast Debug|Any CPU
+		{F41898E5-DB35-4786-B821-7CBD3DF84761}.RayBlast Debug|Any CPU.Build.0 = RayBlast Debug|Any CPU
+		{9474A9AA-FB12-4242-90DA-34F43589CB9F}.RayBlast Release|Any CPU.ActiveCfg = RayBlast Release|Any CPU
+		{9474A9AA-FB12-4242-90DA-34F43589CB9F}.RayBlast Release|Any CPU.Build.0 = RayBlast Release|Any CPU
+		{9474A9AA-FB12-4242-90DA-34F43589CB9F}.RayBlast Debug|Any CPU.ActiveCfg = RayBlast Debug|Any CPU
+		{9474A9AA-FB12-4242-90DA-34F43589CB9F}.RayBlast Debug|Any CPU.Build.0 = RayBlast Debug|Any CPU
+	EndGlobalSection
+EndGlobal

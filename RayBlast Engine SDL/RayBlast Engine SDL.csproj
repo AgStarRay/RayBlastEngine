@@ -1,0 +1,63 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <RootNamespace>RayBlast</RootNamespace>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <Configurations>RayBlast Release;RayBlast Debug;RayBlast Trace;RayBlast WebGL</Configurations>
+        <Platforms>AnyCPU;browser-wasm</Platforms>
+        <LangVersion>default</LangVersion>
+        <TargetFramework>net8.0</TargetFramework>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" $(Configuration.EndsWith('Release')) ">
+        <DebugType>none</DebugType>
+        <DebugSymbols>false</DebugSymbols>
+        <Optimize>true</Optimize>
+        <DefineConstants>RELEASE</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" $(Configuration.EndsWith('Debug')) ">
+        <DebugType>full</DebugType>
+        <DebugSymbols>true</DebugSymbols>
+        <DefineConstants>DEBUG</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" $(Configuration.EndsWith('Trace')) ">
+        <DebugType>full</DebugType>
+        <DebugSymbols>true</DebugSymbols>
+        <DefineConstants>TRACE;DEBUG</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'RayBlast Release' ">
+        <Optimize Condition=" '$(Optimize)' == '' ">true</Optimize>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'RayBlast Debug' ">
+        <DebugSymbols Condition=" '$(DebugSymbols)' == '' ">true</DebugSymbols>
+        <Optimize Condition=" '$(Optimize)' == '' ">false</Optimize>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="NAudio" Version="2.2.1"/>
+        <PackageReference Include="NAudio.Lame" Version="2.1.0"/>
+        <PackageReference Include="NAudio.Midi" Version="2.2.1"/>
+        <PackageReference Include="NAudio.Vorbis" Version="1.5.0"/>
+        <PackageReference Include="SDL3-CS" Version="3.2.14.2" />
+        <PackageReference Include="SDL3-CS.Native" Version="3.2.14" />
+        <PackageReference Include="SDL3-CS.Native.Image" Version="3.2.4"/>
+        <PackageReference Include="SDL3-CS.Native.TTF" Version="3.2.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\RayBlast Engine Core\RayBlast Engine Core.csproj"/>
+    </ItemGroup>
+    <ItemGroup>
+        <Content Include="Resources\**">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+</Project>
