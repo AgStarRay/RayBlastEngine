@@ -1,2 +1,2 @@
 # RayBlastEngine
-Engine based on SDL3
+C# game engine based around SDL3
