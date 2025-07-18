@@ -115,6 +115,14 @@ public static partial class ArrayExtensions {
 		return false;
 	}
 
+	public static bool Contains(this S32X2[] thisArray, S32X2 instance) {
+		foreach(S32X2 t in thisArray) {
+			if(t.Equals(instance))
+				return true;
+		}
+		return false;
+	}
+
 	public static bool ContainsAnyOf<T>(this IEnumerable<T> thisList, ICollection<T> list) {
 		foreach(T t in thisList) {
 			foreach(T t2 in list) {

@@ -26,7 +26,7 @@ public class SoundEffect2D {
 
 	private void Update() {
 		UpdateSource();
-		if(Voice != null && !Voice.IsPlaying) {
+		if(Voice is { IsPlaying: false }) {
 			Voice.Dispose();
 			Voice = null;
 		}

@@ -16,7 +16,7 @@ public class RayBlastHttp : IDisposable {
     private Dictionary<string, string>? responseHeaders;
     private int timeout = 30;
     private HttpClient httpClient;
-    private CancellationTokenSource responseCancellationToken = new();
+    private readonly CancellationTokenSource responseCancellationToken = new();
 
     protected RayBlastHttp() {
         httpClient = HTTP_CLIENTS[timeout];
