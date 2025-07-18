@@ -102,15 +102,18 @@ public static partial class ArrayExtensions {
 		return true;
 	}
 
-	public static bool Contains<T>(this T[] thisArray, T instance) {
+	public static bool Contains<T>(this T[] thisArray, T instance) where T : class {
 		foreach(T t in thisArray) {
-			if(t == null) {
-				if(instance == null)
-					return true;
-			}
-			else if(t.Equals(instance)) {
+			if(t.Equals(instance))
 				return true;
-			}
+		}
+		return false;
+	}
+
+	public static bool Contains(this char[] thisArray, char instance) {
+		foreach(char t in thisArray) {
+			if(t.Equals(instance))
+				return true;
 		}
 		return false;
 	}
