@@ -7,7 +7,7 @@
         <Nullable>enable</Nullable>
         <Configurations>RayBlast Debug;RayBlast Release</Configurations>
         <Platforms>AnyCPU</Platforms>
-        <LangVersion>default</LangVersion>
+        <LangVersion>preview</LangVersion>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'RayBlast Debug' ">

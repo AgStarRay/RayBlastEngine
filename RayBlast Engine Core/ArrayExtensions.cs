@@ -102,8 +102,21 @@ public static partial class ArrayExtensions {
 		return true;
 	}
 
-	public static bool Contains<T>(this T[] thisArray, T instance) where T : class {
-		foreach(T t in thisArray) {
+	public static bool Contains<T>(this T?[] thisArray, T? instance) where T : class {
+		foreach(T? t in thisArray) {
+			if(t == null) {
+				if(instance == null)
+					return true;
+			}
+			else if(t.Equals(instance)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public static bool Contains(this int[] thisArray, int instance) {
+		foreach(int t in thisArray) {
 			if(t.Equals(instance))
 				return true;
 		}
@@ -141,7 +154,7 @@ public static partial class ArrayExtensions {
 		return false;
 	}
 
-	public static int IndexOf<T>(this IList<T> thisArray, T instance) {
+	public static int IndexOf<T>(this IList<T?> thisArray, T? instance) where T : class {
 		int arrayLength = thisArray.Count;
 		if(instance == null) {
 			for(int i = 0; i < arrayLength; i++) {
@@ -154,6 +167,24 @@ public static partial class ArrayExtensions {
 				if(instance.Equals(thisArray[i]))
 					return i;
 			}
+		}
+		return -1;
+	}
+
+	public static int IndexOf(this IList<int> thisArray, int instance) {
+		int arrayLength = thisArray.Count;
+		for(int i = 0; i < arrayLength; i++) {
+			if(instance.Equals(thisArray[i]))
+				return i;
+		}
+		return -1;
+	}
+
+	public static int IndexOf(this IList<S32X2> thisArray, S32X2 instance) {
+		int arrayLength = thisArray.Count;
+		for(int i = 0; i < arrayLength; i++) {
+			if(instance.Equals(thisArray[i]))
+				return i;
 		}
 		return -1;
 	}
