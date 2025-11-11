@@ -4,34 +4,36 @@ using NAudio.Wave;
 namespace RayBlast;
 
 public class RayBlastWdlResampler : ISampleProvider {
-  public float pitch = 1f;
-  
-  private readonly WdlResampler resampler;
-  private readonly WaveFormat outFormat;
-  private readonly ISampleProvider source;
-  private readonly int channels;
+    public float pitch = 1f;
 
-  public RayBlastWdlResampler(ISampleProvider source, int newSampleRate) {
-    channels = source.WaveFormat.Channels;
-    outFormat = WaveFormat.CreateIeeeFloatWaveFormat(newSampleRate, channels);
-    this.source = source;
-    resampler = new WdlResampler();
-    resampler.SetMode(true, 2, false);
-    resampler.SetFilterParms();
-    resampler.SetFeedMode(false);
-    resampler.SetRates(source.WaveFormat.SampleRate, newSampleRate);
-  }
+    private readonly WdlResampler resampler;
+    private SmbPitchShifter? shifter;
+    private readonly WaveFormat outFormat;
+    private readonly ISampleProvider source;
+    private readonly int channels;
 
-  /// <summary>Reads from this sample provider</summary>
-  public int Read(float[] buffer, int offset, int count)
-  {
-    resampler.SetRates(source.WaveFormat.SampleRate * pitch, WaveFormat.SampleRate);
-    int num1 = count / channels;
-    int num2 = resampler.ResamplePrepare(num1, outFormat.Channels, out float[] inbuffer, out int inbufferOffset);
-    int nsamples_in = source.Read(inbuffer, inbufferOffset, num2 * channels) / channels;
-    return resampler.ResampleOut(buffer, offset, nsamples_in, num1, channels) * channels;
-  }
+    public RayBlastWdlResampler(ISampleProvider source, int newSampleRate) {
+        channels = source.WaveFormat.Channels;
+        outFormat = WaveFormat.CreateIeeeFloatWaveFormat(newSampleRate, channels);
+        this.source = source;
+        resampler = new WdlResampler();
+        resampler.SetMode(true, 2, false);
+        resampler.SetFilterParms();
+        resampler.SetFeedMode(false);
+        resampler.SetRates(source.WaveFormat.SampleRate, newSampleRate);
+        //SmbPitchShifter
+    }
 
-  /// <summary>Output WaveFormat</summary>
-  public WaveFormat WaveFormat => outFormat;
+    public int Read(float[] buffer, int offset,
+                    int count) {
+        resampler.SetRates(source.WaveFormat.SampleRate * pitch, WaveFormat.SampleRate);
+        int num1 = count / channels;
+        int num2 = resampler.ResamplePrepare(num1, outFormat.Channels, out float[] inbuffer, out int inbufferOffset);
+        int nsamples_in = source.Read(inbuffer, inbufferOffset, num2 * channels) / channels;
+        int resampleOut = resampler.ResampleOut(buffer, offset, nsamples_in, num1, channels) * channels;
+        shifter?.PitchShift(1f, count, WaveFormat.SampleRate, buffer);
+        return resampleOut;
+    }
+
+    public WaveFormat WaveFormat => outFormat;
 }
