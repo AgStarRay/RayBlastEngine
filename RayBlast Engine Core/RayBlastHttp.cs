@@ -3,6 +3,13 @@
 namespace RayBlast;
 
 public class RayBlastHttp : IDisposable {
+    /*TODO: Use DotNetServices
+        dataClient = DotNetServices.HTTP_CLIENT_FACTORY.CreateClient();
+        services.AddHttpClient("GameDataClient", static client => {
+            client.BaseAddress = new Uri("https://api.gamedata.com/");
+            client.DefaultRequestHeaders.Add("User-Agent", "MyGameEngine");
+        });
+        gameDataClient = DotNetServices.HTTP_CLIENT_FACTORY.CreateClient("GameDataClient");*/
     public static readonly Dictionary<int, HttpClient> HTTP_CLIENTS = new() {
         {
             30, new HttpClient {

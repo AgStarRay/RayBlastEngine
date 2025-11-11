@@ -6,8 +6,6 @@ namespace RayBlast;
 public class RenderTexture : IDisposable {
     public RenderTexture(ushort width, ushort height) {
         UnmanagedManager.AssertMainThread();
-        Width = width;
-        Height = height;
         Debug.LogDebug($"Load RenderTexture {width}x{height}");
         Texture = new Texture(willGenerateImage: false, willGenerateTexture: true, width, height);
         Texture.internalTexture = SDL.CreateTexture(RayBlastEngine.renderer, SDL.PixelFormat.RGBA8888, SDL.TextureAccess.Target,
@@ -21,8 +19,8 @@ public class RenderTexture : IDisposable {
     }
 
     public Texture Texture { get; }
-    public int Width { get; }
-    public int Height { get; }
+    public int Width => Texture.Width;
+    public int Height => Texture.Height;
 
     private void ReleaseUnmanagedResources() {
         Texture.Dispose();

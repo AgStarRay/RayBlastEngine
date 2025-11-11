@@ -9,7 +9,7 @@ namespace RayBlast;
 public class RayBlastSoundHttp : RayBlastHttp {
 	private readonly Uri uri;
 	private readonly SoundFileType soundFileType;
-	private Thread? waveThread;
+	private SoundHttpState httpState;
 	private readonly ulong bytesToLoad;
 	private Exception? caughtException;
 	private ISampleProvider? retrievedSampleProvider;
@@ -34,14 +34,20 @@ public class RayBlastSoundHttp : RayBlastHttp {
 	public override ulong DownloadedByteCount => uri.IsFile ? bytesToLoad : base.DownloadedByteCount;
 	public override float DownloadProgress => uri.IsFile ? ThreadFinished ? 1f : 0.5f : base.DownloadProgress;
 
-	private bool ThreadFinished => waveThread is { IsAlive: false };
+	private bool ThreadFinished => httpState == SoundHttpState.Finished;
 
 	public SoundClip GetSound() {
 		if(uri.IsFile) {
 			int lastSlashIndex = uri.LocalPath.LastIndexOf('\\');
-			if(waveThread == null)
+			if(httpState == SoundHttpState.Waiting)
 				throw new RayBlastEngineException("Sound did not start loading, use SendRequest() first");
-			waveThread?.Join(5000);
+			for(int i = 0; i <= 5000; i++) {
+				if(httpState == SoundHttpState.Finished)
+					break;
+				Thread.Sleep(1);
+				if(i == 5000)
+					throw new RayBlastEngineException("Sound is taking too long to load");
+			}
 			string name = uri.LocalPath[(lastSlashIndex + 1)..];
 			if(caughtException != null) {
 				throw new RayBlastEngineException($"Failed to load {name}", caughtException);
@@ -63,9 +69,10 @@ public class RayBlastSoundHttp : RayBlastHttp {
 
 	public override void SendRequest() {
 		if(uri.IsFile || uri.IsLoopback) {
-			if(waveThread == null) {
-				waveThread = new Thread(LoadLocalWave);
-				waveThread.Start();
+			if(httpState == SoundHttpState.Waiting) {
+				httpState = SoundHttpState.Queued;
+				if(!ThreadPool.QueueUserWorkItem(LoadLocalWave))
+					throw new RayBlastEngineException("Failed to start sound load job");
 			}
 			else
 				throw new RayBlastEngineException("Request already sent");
@@ -74,8 +81,9 @@ public class RayBlastSoundHttp : RayBlastHttp {
 			base.SendRequest();
 	}
 
-	private unsafe void LoadLocalWave() {
+	private unsafe void LoadLocalWave(object? state) {
 		try {
+			httpState = SoundHttpState.Running;
 			var fi = new FileInfo(uri.LocalPath);
 			if(!fi.Exists)
 				throw new FileNotFoundException(null, uri.LocalPath);
@@ -112,5 +120,15 @@ public class RayBlastSoundHttp : RayBlastHttp {
 		catch(Exception e) {
 			caughtException = e;
 		}
+		finally {
+			httpState = SoundHttpState.Finished;
+		}
+	}
+
+	private enum SoundHttpState {
+		Waiting,
+		Queued,
+		Running,
+		Finished
 	}
 }

@@ -138,6 +138,14 @@ public class Texture : IDisposable {
         imageUpdated = true;
     }
 
+    public void ReadFrom(RenderTexture source, Vector4 sourceRect,
+                         S32X2 destination) {
+        throw new NotImplementedException();
+        // UnityEngine.RenderTexture.active = source.internalTexture;
+        // internalTexture?.ReadPixels(new Rect(sourceRect.X, sourceRect.Y, sourceRect.Z, sourceRect.W), destination.X, destination.Y);
+        // internalTexture?.Apply();
+    }
+
     private void ReleaseUnmanagedResources() {
         //TODO_URGENT: Dispose the surface
         // if(generatedTexture && Raylib.IsTextureValid(internalTexture))

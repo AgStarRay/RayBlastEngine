@@ -65,7 +65,7 @@ internal class RayBlastSoundMixer : ISampleProvider {
                             newMix = new MonoToStereoSampleProvider(newMix);
                     }
                     if(newMix.WaveFormat.Encoding != WaveFormatEncoding.IeeeFloat)
-                        Debug.LogWarning($"Invalid mix encoding {newMix.WaveFormat.Encoding}", false);
+                        Debug.LogWarning($"Invalid mix encoding {newMix.WaveFormat.Encoding}");
                     voice.finalMixSampleProvider = new RayBlastWdlResampler(newMix, WaveFormat.SampleRate);
                 }
                 RayBlastWdlResampler source = voice.finalMixSampleProvider;
@@ -99,8 +99,6 @@ internal class RayBlastSoundMixer : ISampleProvider {
     }
 
     public AudioVoice? GetSource(int index) {
-        {
-            return index >= sources.Count ? null : (AudioVoice?)sources[index];
-        }
+        return index >= sources.Count ? null : (AudioVoice?)sources[index];
     }
 }
