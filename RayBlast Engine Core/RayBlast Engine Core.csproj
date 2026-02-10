@@ -21,7 +21,7 @@
 
     <ItemGroup>
         <PackageReference Include="AVX2PerlinNoise" Version="2.0.0"/>
-        <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.9" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0"/>
         <PackageReference Include="ZString" Version="2.5.0"/>
     </ItemGroup>
 

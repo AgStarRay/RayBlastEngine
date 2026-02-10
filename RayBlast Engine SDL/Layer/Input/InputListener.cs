@@ -13,7 +13,7 @@ public class InputListener : IDisposable {
     public string label = "?";
     public List<Key> keys = new();
     [JsonIgnore]
-    public int joystickIndex = -1;
+    public int joystickID = -1;
     public List<int> axisIndexes = new();
     public List<float> analogThresholds = new();
     public float repeatDelay = 0.25f;
@@ -63,9 +63,9 @@ public class InputListener : IDisposable {
             var values = new float[Math.Min(axisIndexes.Count, analogThresholds.Count)];
             for(var i = 0; i < values.Length; i++) {
                 if(axisIndexes[i] >= 0 && axisIndexes[i] < 10) {
-                    if(joystickIndex > -1)
+                    if(joystickID > -1)
                         //TODO_AFTER: Read analog value
-                        values[i] = Input.GetGamepadAxisValue(joystickIndex, GamepadAxis.LeftX);
+                        values[i] = Input.GetJoystickAxisValue((uint)joystickID, i);
                 }
             }
             return values;
@@ -134,12 +134,12 @@ public class InputListener : IDisposable {
     public void Update() {
         if(lastUnpausedEventIndexes.Count != keys.Count) {
             if(keys.Count > 32) {
-                Debug.LogWarning($"Too many keys in InputListener, {keys.Count}/32", false);
+                Debug.LogWarning($"Too many keys in InputListener, {keys.Count}/32");
                 keys.RemoveRange(32, keys.Count - 32);
             }
             lastUnpausedEventIndexes.Clear();
             foreach(Key k in keys) {
-                lastUnpausedEventIndexes.Add(Input.HISTORY[k].Count);
+                lastUnpausedEventIndexes.Add(Input.KEY_HISTORY[k].Count);
             }
         }
 
@@ -147,7 +147,7 @@ public class InputListener : IDisposable {
             var pressed = false;
             var released = false;
             bool currentState = UnpausedHeld;
-            List<InputEvent> history = Input.HISTORY[keys[0]];
+            List<InputKeyEvent> history = Input.KEY_HISTORY[keys[0]];
             for(int i = lastUnpausedEventIndexes[0]; i < history.Count; i++) {
                 bool newState = history[i].IsDown;
                 if(newState != currentState) {
@@ -167,15 +167,15 @@ public class InputListener : IDisposable {
         }
         else {
             var currentStates = 0;
-            var history = new List<(int, InputEvent)>();
+            var history = new List<(int, InputKeyEvent)>();
             for(var i = 0; i < keys.Count; i++) {
                 Key key = keys[i];
-                List<InputEvent> keyHistory = Input.HISTORY[key];
+                List<InputKeyEvent> keyHistory = Input.KEY_HISTORY[key];
                 int startIndex = lastUnpausedEventIndexes[i];
                 if(keyHistory[startIndex - 1].IsDown)
                     currentStates |= 1 << i;
                 for(int j = startIndex; j < keyHistory.Count; j++) {
-                    InputEvent e = keyHistory[j];
+                    InputKeyEvent e = keyHistory[j];
                     history.Add((i, e));
                 }
                 lastUnpausedEventIndexes[i] = keyHistory.Count;
@@ -185,7 +185,7 @@ public class InputListener : IDisposable {
 
             var pressed = false;
             var released = false;
-            foreach((int, InputEvent) p in history) {
+            foreach((int, InputKeyEvent) p in history) {
                 int newStates;
                 if(p.Item2.IsDown)
                     newStates = currentStates.WithBit(p.Item1);
@@ -223,12 +223,12 @@ public class InputListener : IDisposable {
     public void FixedUpdate() {
         if(lastEventIndexes.Count != keys.Count) {
             if(keys.Count > 32) {
-                Debug.LogWarning($"Too many keys in InputListener, {keys.Count}/32", false);
+                Debug.LogWarning($"Too many keys in InputListener, {keys.Count}/32");
                 keys.RemoveRange(32, keys.Count - 32);
             }
             lastEventIndexes.Clear();
             foreach(Key k in keys) {
-                lastEventIndexes.Add(Input.HISTORY[k].Count);
+                lastEventIndexes.Add(Input.KEY_HISTORY[k].Count);
             }
         }
 
@@ -236,7 +236,7 @@ public class InputListener : IDisposable {
             var pressed = false;
             var released = false;
             bool currentState = Held;
-            List<InputEvent> history = Input.HISTORY[keys[0]];
+            List<InputKeyEvent> history = Input.KEY_HISTORY[keys[0]];
             for(int i = lastEventIndexes[0]; i < history.Count; i++) {
                 bool newState = history[i].IsDown;
                 if(newState != currentState) {
@@ -256,15 +256,15 @@ public class InputListener : IDisposable {
         }
         else {
             var currentStates = 0;
-            var history = new List<(int, InputEvent)>();
+            var history = new List<(int, InputKeyEvent)>();
             for(var i = 0; i < keys.Count; i++) {
                 Key key = keys[i];
-                List<InputEvent> keyHistory = Input.HISTORY[key];
+                List<InputKeyEvent> keyHistory = Input.KEY_HISTORY[key];
                 int startIndex = lastEventIndexes[i];
                 if(keyHistory[startIndex - 1].IsDown)
                     currentStates |= 1 << i;
                 for(int j = startIndex; j < keyHistory.Count; j++) {
-                    InputEvent e = keyHistory[j];
+                    InputKeyEvent e = keyHistory[j];
                     history.Add((i, e));
                 }
                 lastEventIndexes[i] = keyHistory.Count;
@@ -274,7 +274,7 @@ public class InputListener : IDisposable {
 
             var pressed = false;
             var released = false;
-            foreach((int, InputEvent) p in history) {
+            foreach((int, InputKeyEvent) p in history) {
                 int newStates;
                 if(p.Item2.IsDown)
                     newStates = currentStates.WithBit(p.Item1);
@@ -345,6 +345,10 @@ public class InputListener : IDisposable {
                 unpausedRepeatTimeLeft += repeatPeriod * signalsGenerated;
             }
         }
+    }
+
+    public void InjectKeyEvent(InputKeyEvent e) {
+        
     }
 
     public void Dispose() {

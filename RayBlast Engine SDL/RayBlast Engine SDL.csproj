@@ -45,10 +45,10 @@
         <PackageReference Include="NAudio.Lame" Version="2.1.0"/>
         <PackageReference Include="NAudio.Midi" Version="2.2.1"/>
         <PackageReference Include="NAudio.Vorbis" Version="1.5.0"/>
-        <PackageReference Include="SDL3-CS" Version="3.2.16.7" />
-        <PackageReference Include="SDL3-CS.Native" Version="3.2.16" />
+        <PackageReference Include="SDL3-CS" Version="3.3.6" />
+        <PackageReference Include="SDL3-CS.Native" Version="3.3.6" />
         <PackageReference Include="SDL3-CS.Native.Image" Version="3.2.4"/>
-        <PackageReference Include="SDL3-CS.Native.TTF" Version="3.2.2" />
+        <PackageReference Include="SDL3-CS.Native.TTF" Version="3.2.2"/>
     </ItemGroup>
 
     <ItemGroup>

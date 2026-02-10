@@ -97,14 +97,12 @@ public static unsafe class RayBlastEngine {
             Debug.Log($"Game version = {Game.Version}");
             Debug.Log($"Processor brand name = {Debug.SystemProcessorName}");
             PlayerPreferences.Load();
-            //TODO: Disable SDL3 audio
-            if(!SDL.Init(SDL.InitFlags.Video | SDL.InitFlags.Audio | SDL.InitFlags.Gamepad | SDL.InitFlags.Haptic)) {
+            if(!SDL.Init(SDL.InitFlags.Video | SDL.InitFlags.Gamepad | SDL.InitFlags.Haptic))
                 throw new RayBlastEngineException($"SDL3 failed to initialize: {SDL.GetError()}");
-            }
-            if(!TTF.Init()) {
+            if(!TTF.Init())
                 throw new RayBlastEngineException($"SDL_ttf failed to initialize: {SDL.GetError()}");
-            }
             preinitialized = true;
+            Debug.Log("Preinitialization complete");
         }
         catch(Exception e) {
             Debug.LogException(e);
@@ -147,7 +145,7 @@ public static unsafe class RayBlastEngine {
                     Debug.LogException(e);
                 }
             }
-            Debug.Log("RayBlast Engine finished initialization", false);
+            Debug.Log("RayBlast Engine finished initialization");
         }
         catch(Exception e) {
             throw;
@@ -183,9 +181,9 @@ public static unsafe class RayBlastEngine {
                     LOG_WATCH.ElapsedTicks.TryFormat(span, out int charsWritten);
                     logStreamWriter.Write(span[..charsWritten]);
                     #else
-					logStreamWriter.Write('I');
-					LOG_WATCH.ElapsedMilliseconds.TryFormat(span, out int charsWritten);
-					logStreamWriter.Write(span[..charsWritten]);
+                    logStreamWriter.Write('I');
+                    LOG_WATCH.ElapsedMilliseconds.TryFormat(span, out int charsWritten);
+                    logStreamWriter.Write(span[..charsWritten]);
                     #endif
                 }
                 else {
@@ -194,9 +192,9 @@ public static unsafe class RayBlastEngine {
                     WATCH.Elapsed.TotalSeconds.TryFormat(span, out int charsWritten, "0.000000");
                     logStreamWriter.Write(span[..charsWritten]);
                     #else
-					Span<char> span = stackalloc char[8];
-					WATCH.Elapsed.TotalSeconds.TryFormat(span, out int charsWritten, "0.000");
-					logStreamWriter.Write(span[..charsWritten]);
+                    Span<char> span = stackalloc char[8];
+                    WATCH.Elapsed.TotalSeconds.TryFormat(span, out int charsWritten, "0.000");
+                    logStreamWriter.Write(span[..charsWritten]);
                     #endif
                 }
                 logStreamWriter.Write(' ');
@@ -222,9 +220,9 @@ public static unsafe class RayBlastEngine {
                 WATCH.Elapsed.TotalSeconds.TryFormat(span, out int charsWritten, "0.000000");
                 logStreamWriter.Write(span[..charsWritten]);
                 #else
-				Span<char> span = stackalloc char[8];
-				WATCH.Elapsed.TotalSeconds.TryFormat(span, out int charsWritten, "0.000");
-				logStreamWriter.Write(span[..charsWritten]);
+                Span<char> span = stackalloc char[8];
+                WATCH.Elapsed.TotalSeconds.TryFormat(span, out int charsWritten, "0.000");
+                logStreamWriter.Write(span[..charsWritten]);
                 #endif
                 logStreamWriter.Write(' ');
                 logStreamWriter.Write(logMessage);
@@ -249,9 +247,9 @@ public static unsafe class RayBlastEngine {
                 WATCH.Elapsed.TotalSeconds.TryFormat(span, out int charsWritten, "0.000000");
                 logStreamWriter.Write(span[..charsWritten]);
                 #else
-				Span<char> span = stackalloc char[8];
-				WATCH.Elapsed.TotalSeconds.TryFormat(span, out int charsWritten, "0.000");
-				logStreamWriter.Write(span[..charsWritten]);
+                Span<char> span = stackalloc char[8];
+                WATCH.Elapsed.TotalSeconds.TryFormat(span, out int charsWritten, "0.000");
+                logStreamWriter.Write(span[..charsWritten]);
                 #endif
                 logStreamWriter.Write(' ');
                 logStreamWriter.Write(logMessage);
@@ -278,9 +276,9 @@ public static unsafe class RayBlastEngine {
                 WATCH.Elapsed.TotalSeconds.TryFormat(span, out int charsWritten, "0.000000");
                 logStreamWriter.Write(span[..charsWritten]);
                 #else
-				Span<char> span = stackalloc char[8];
-				WATCH.Elapsed.TotalSeconds.TryFormat(span, out int charsWritten, "0.000");
-				logStreamWriter.Write(span[..charsWritten]);
+                Span<char> span = stackalloc char[8];
+                WATCH.Elapsed.TotalSeconds.TryFormat(span, out int charsWritten, "0.000");
+                logStreamWriter.Write(span[..charsWritten]);
                 #endif
                 logStreamWriter.Write(' ');
                 logStreamWriter.Write(buffer.AsSpan());
@@ -332,9 +330,9 @@ public static unsafe class RayBlastEngine {
                 }
                 //TODO: Allow skipping render calls with a softcoded target framerate
                 try {
-                    Time.renderedFrameCount++;
                     SDL.SetRenderVSync(renderer, Graphics.VSyncCount);
-                    var renderStart = Stopwatch.GetTimestamp();
+                    Time.renderedFrameCount++;
+                    long renderStart = Stopwatch.GetTimestamp();
                     renderMethod();
                     Time.accumulatedRenderTime += (Stopwatch.GetTimestamp() - renderStart) / (double)TimeSpan.TicksPerSecond;
                 }
@@ -432,20 +430,42 @@ public static unsafe class RayBlastEngine {
             case SDL.EventType.WindowCloseRequested:
                 Game.requestedClose = true;
                 break;
+            case SDL.EventType.JoystickAdded:
+                Debug.LogDebug($"Joystick added {sdlEvent.JDevice.Which}: {Input.GetJoystickName(sdlEvent.JDevice.Which)}", false);
+                break;
+            case SDL.EventType.JoystickRemoved:
+                Debug.LogDebug($"Joystick removed {sdlEvent.JDevice.Which}", false);
+                Input.RemoveJoystick(sdlEvent.JDevice.Which);
+                break;
             case SDL.EventType.JoystickButtonDown:
-                Debug.LogDebug($"JButton {sdlEvent.JButton.Which}");
+            case SDL.EventType.JoystickButtonUp:
+                Input.QUEUED_EVENTS.Enqueue(InputType.JoystickButton);
+                var newButtonEvent = new InputJoystickButtonEvent(sdlEvent.JButton.Which, sdlEvent.JButton.Button,
+                                                                            sdlEvent.JButton.Down,
+                                                                            sdlEvent.JButton.Timestamp / 1e9);
+                Input.QUEUED_JOYSTICK_BUTTON_EVENTS.Enqueue(newButtonEvent);
+                // Debug.LogDebug(newButtonEvent.ToString(), includeStackTrace: false);
                 break;
             case SDL.EventType.JoystickAxisMotion:
-                Debug.LogDebug($"JAxis {sdlEvent.JAxis.Which}");
+                Input.QUEUED_EVENTS.Enqueue(InputType.JoystickAxis);
+                var newAxisEvent = new InputJoystickAxisEvent(sdlEvent.JAxis.Which, sdlEvent.JAxis.Axis, sdlEvent.JAxis.Value, sdlEvent.JAxis.Timestamp / 1e9);
+                Input.QUEUED_JOYSTICK_AXIS_EVENTS.Enqueue(newAxisEvent);
+                // Debug.LogDebug(newAxisEvent.ToString(), includeStackTrace: false);
+                break;
+            case SDL.EventType.JoystickHatMotion:
+                Input.QUEUED_EVENTS.Enqueue(InputType.JoystickHat);
+                var newHatEvent = new InputJoystickHatEvent(sdlEvent.JHat.Which, sdlEvent.JHat.Hat, (HatState)sdlEvent.JHat.Value, sdlEvent.Key.Timestamp / 1e9);
+                Input.QUEUED_JOYSTICK_HAT_EVENTS.Enqueue(newHatEvent);
+                // Debug.LogDebug(newHatEvent.ToString(), includeStackTrace: false);
                 break;
             case SDL.EventType.KeyDown:
             case SDL.EventType.KeyUp:
                 try {
                     Key key = sdlEvent.Key.Key.ToRayBlast();
                     if(key != Key.Null) {
-                        Input.QUEUED_EVENTS.Enqueue(new InputEvent {
-                            key = key, state = (byte)(sdlEvent.Key.Down ? 1 : 0), time = sdlEvent.Key.Timestamp / 1e9
-                        });
+                        Input.QUEUED_EVENTS.Enqueue(InputType.Keyboard);
+                        var newKeyEvent = new InputKeyEvent(key, sdlEvent.Key.Down, sdlEvent.Key.Timestamp / 1e9);
+                        Input.QUEUED_KEY_EVENTS.Enqueue(newKeyEvent);
                     }
                 }
                 catch(ArgumentOutOfRangeException) {
@@ -461,9 +481,10 @@ public static unsafe class RayBlastEngine {
                 try {
                     MouseCode mouseCode = Utils.SDLToRayBlastMouseCode(sdlEvent.Button.Button);
                     if(mouseCode != MouseCode.Null) {
-                        Input.QUEUED_EVENTS.Enqueue(new InputEvent {
-                            mouseCode = mouseCode, state = (byte)(sdlEvent.Button.Down ? 1 : 0), time = sdlEvent.Button.Timestamp / 1e9
-                        });
+                        Input.QUEUED_EVENTS.Enqueue(InputType.Mouse);
+                        var newMouseEvent = new InputMouseEvent(mouseCode, sdlEvent.Button.Down, sdlEvent.Button.X, sdlEvent.Button.Y,
+                                                                  sdlEvent.Button.Timestamp / 1e9);
+                        Input.QUEUED_MOUSE_EVENTS.Enqueue(newMouseEvent);
                     }
                 }
                 catch(ArgumentOutOfRangeException) {
@@ -487,7 +508,7 @@ public static unsafe class RayBlastEngine {
     //TODO: Add the ability to disable async update
     private static void GameUpdate() {
         try {
-            var updateStart = Stopwatch.GetTimestamp();
+            long updateStart = Stopwatch.GetTimestamp();
             updateMethod?.Invoke();
             Time.accumulatedUpdateTime += (Stopwatch.GetTimestamp() - updateStart) / (double)TimeSpan.TicksPerSecond;
         }
@@ -498,10 +519,6 @@ public static unsafe class RayBlastEngine {
 
     public static void StopApplication() {
         canContinue = 0;
-    }
-
-    public static Uri CreateResourceUri(string resourceUri) {
-        return new Uri(Path.Combine(Environment.CurrentDirectory, "Resources", resourceUri));
     }
 
     public static void AddDebugGraphics() {

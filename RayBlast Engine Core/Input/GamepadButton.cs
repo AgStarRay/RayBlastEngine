@@ -1,0 +1,31 @@
+﻿namespace RayBlast;
+
+public enum GamepadButton {
+    Null,
+    South,
+    East,
+    West,
+    North,
+    LeftShoulder,
+    RightShoulder,
+    Start,
+    Select,
+    LeftStick,
+    RightStick,
+    DPadUp,
+    DPadDown,
+    DPadLeft,
+    DPadRight,
+    Guide,
+    Touchpad,
+    LeftPaddle1,
+    RightPaddle1,
+    LeftPaddle2,
+    RightPaddle2,
+    Misc1,
+    Misc2,
+    Misc3,
+    Misc4,
+    Misc5,
+    Misc6
+}

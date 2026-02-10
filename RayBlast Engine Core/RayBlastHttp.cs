@@ -7,7 +7,7 @@ public class RayBlastHttp : IDisposable {
         dataClient = DotNetServices.HTTP_CLIENT_FACTORY.CreateClient();
         services.AddHttpClient("GameDataClient", static client => {
             client.BaseAddress = new Uri("https://api.gamedata.com/");
-            client.DefaultRequestHeaders.Add("User-Agent", "MyGameEngine");
+            client.DefaultRequestHeaders.Add("User-Agent", "RayBlastEngine");
         });
         gameDataClient = DotNetServices.HTTP_CLIENT_FACTORY.CreateClient("GameDataClient");*/
     public static readonly Dictionary<int, HttpClient> HTTP_CLIENTS = new() {
@@ -55,8 +55,7 @@ public class RayBlastHttp : IDisposable {
     public virtual byte[] DownloadedBytes => SuccessfulResponse?.Content.ReadAsByteArrayAsync().Result ?? [];
     public long ResponseCode {
         get {
-            Task<HttpResponseMessage>? task = responseTask;
-            if(task == null)
+            if(responseTask == null)
                 throw new InvalidOperationException("Request not sent");
             if(!IsDone)
                 return 0;
@@ -64,7 +63,7 @@ public class RayBlastHttp : IDisposable {
             if(successfulResponse != null)
                 return (long)successfulResponse.StatusCode;
             try {
-                return (long)task.Result.StatusCode;
+                return (long)responseTask.Result.StatusCode;
             }
             catch {
                 return -1;
@@ -127,7 +126,6 @@ public class RayBlastHttp : IDisposable {
             throw new InvalidOperationException("Request not set up");
         if(responseTask != null)
             throw new InvalidOperationException("Request already sent");
-        //TODO: Use HttpCompletionOption.ResponseHeadersRead and read the content as it downloads
         responseTask = httpClient.SendAsync(requestMessage, responseCancellationToken.Token);
     }
 
