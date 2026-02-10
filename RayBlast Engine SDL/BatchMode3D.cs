@@ -12,6 +12,7 @@ namespace RayBlast;
 public static unsafe class BatchMode3D {
 	private static Texture? currentTexture;
 
+	//TODO: Switch to arrays to avoid unnecessary capacity checks
 	private static readonly List<float> XY = [];
 	private static readonly List<SDL.FColor> COLORS = [];
 	private static readonly List<float> UV = [];
@@ -114,22 +115,22 @@ public static unsafe class BatchMode3D {
 									ColorF tint) {
 		DrawSubimage(subimage, subimage.rectangle with {
 						 Z = destination.X, W = destination.Y
-					 }, new Vector2(0.5f, 0.5f), 0f,
+					 }, new Vector2(0.5f, 0.5f), Quaternion.Identity,
 					 tint);
 	}
 
 	public static void DrawSubimage(TextureSubimage subimage, Vector4 destination,
 									ColorF tint) {
-		DrawSubimage(subimage, destination, new Vector2(0.5f, 0.5f), 0f, tint);
+		DrawSubimage(subimage, destination, new Vector2(0.5f, 0.5f), Quaternion.Identity, tint);
 	}
 
 	public static void DrawSubimage(TextureSubimage subimage, Vector4 destination,
 									Vector2 origin, ColorF tint) {
-		DrawSubimage(subimage, destination, origin, 0f, tint);
+		DrawSubimage(subimage, destination, origin, Quaternion.Identity, tint);
 	}
 
 	public static void DrawSubimage(TextureSubimage subimage, Vector4 destination,
-									Vector2 origin, float rotation,
+									Vector2 origin, Quaternion rotation,
 									ColorF tint) {
 		origin *= new Vector2(destination.Z, destination.W);
 		destination.X -= origin.X;

@@ -47,10 +47,10 @@ public static unsafe class BatchMode2D {
             SDL.SetTextureBlendMode(currentTexture.internalTexture, Graphics.BLEND_WITH_PREMULTIPLY_ALPHA);
         }
         bool success = SDL.RenderGeometryRaw(RayBlastEngine.renderer, currentTexture.internalTexture,
-                                             xy.AsSpan(), 2 * sizeof(float),
-                                             colors.AsSpan(), sizeof(SDL.FColor),
-                                             uv.AsSpan(), 2 * sizeof(float), vertexCount,
-                                             indices.AsSpan(), indexCount, sizeof(int));
+                                             xy, 2 * sizeof(float),
+                                             colors, sizeof(SDL.FColor),
+                                             uv, 2 * sizeof(float), vertexCount,
+                                             indices, indexCount, sizeof(int));
         if(!success)
             Debug.LogError($"Failed to render 2D batch: {SDL.GetError()}", false);
         currentTexture = null;

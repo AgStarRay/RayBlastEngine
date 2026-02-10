@@ -128,7 +128,7 @@ public class SDFFont : IDisposable {
             kvp.Value.Dispose();
         }
         pendingRasterGlyphs.Clear();
-        Debug.Log($"Font SDF atlas generated in {(Stopwatch.GetTimestamp() - startTimestamp) / (double)TimeSpan.TicksPerSecond}");
+        Debug.Log($"Font SDF atlas readied in {(Stopwatch.GetTimestamp() - startTimestamp) / (double)TimeSpan.TicksPerSecond}");
     }
 
     private void ReleaseUnmanagedResources() {

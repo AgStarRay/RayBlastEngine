@@ -19,7 +19,7 @@ public static unsafe class ImmediateMode {
     private static IntPtr rendererTextEngine;
 
     static ImmediateMode() {
-        Uri resourceUri = RayBlastEngine.CreateResourceUri("Shaders/sdf.frag");
+        Uri resourceUri = IO.CreateResourceUri("Shaders/sdf.frag");
         string fragmentCode = File.ReadAllText(resourceUri.LocalPath);
         // SDF_SHADER = Shader.Load(null, fragmentCode);
         // DILATION_LOC = SDF_SHADER.GetLocation("dilation");
@@ -192,15 +192,15 @@ public static unsafe class ImmediateMode {
                                   int size, Color32 color32,
                                   TextAlignmentFlags alignment, FontInstance fontInstance) {
         UnmanagedManager.AssertMainThread();
-        Font font = fontInstance.font;
-        TTF.SetFontSize(font.fontPtr, size);
-        if(font.textPtr == IntPtr.Zero) {
+        Font fontTtf = fontInstance.font;
+        TTF.SetFontSize(fontTtf.fontPtr, size);
+        if(fontTtf.textPtr == IntPtr.Zero) {
             if(rendererTextEngine == IntPtr.Zero)
                 rendererTextEngine = TTF.CreateRendererTextEngine(RayBlastEngine.renderer);
-            font.textPtr = TTF.CreateText(rendererTextEngine, font.fontPtr, "", UIntPtr.Zero);
+            fontTtf.textPtr = TTF.CreateText(rendererTextEngine, fontTtf.fontPtr, "", UIntPtr.Zero);
         }
-        SetTextString(font.textPtr, utf8Ptr, 0);
-        TTF.GetTextSize(font.textPtr, out int w, out int h);
+        SetTextString(fontTtf.textPtr, utf8Ptr, 0);
+        TTF.GetTextSize(fontTtf.textPtr, out int w, out int h);
         var renderSize = new Vector2(w, h);
         if((alignment & TextAlignmentFlags.HRight) != 0)
             position.X -= renderSize.X;
@@ -210,13 +210,13 @@ public static unsafe class ImmediateMode {
             position.Y -= renderSize.Y;
         else if((alignment & TextAlignmentFlags.VMiddle) != 0)
             position.Y -= renderSize.Y / 2f;
-        TTF.SetFontWrapAlignment(font.fontPtr, (alignment & (TextAlignmentFlags)15) switch {
+        TTF.SetFontWrapAlignment(fontTtf.fontPtr, (alignment & (TextAlignmentFlags)15) switch {
             TextAlignmentFlags.HLeft => TTF.HorizontalAlignment.Left,
             TextAlignmentFlags.HRight => TTF.HorizontalAlignment.Right,
             _ => TTF.HorizontalAlignment.Center
         });
-        TTF.SetTextColor(font.textPtr, color32.r, color32.g, color32.b, color32.a);
-        TTF.DrawRendererText(font.textPtr, position.X, position.Y);
+        TTF.SetTextColor(fontTtf.textPtr, color32.r, color32.g, color32.b, color32.a);
+        TTF.DrawRendererText(fontTtf.textPtr, position.X, position.Y);
     }
 
     public static Vector2 MeasureTextSizeDelta(string? text, int fontSize,
@@ -255,6 +255,15 @@ public static unsafe class ImmediateMode {
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     private static extern sbyte SetTextString(nint textNative, byte* stringNative,
                                               ulong lengthNative);
+
+    public static void DrawPixels(ReadOnlySpan<Vector2> points, Color32 color32) {
+        UnmanagedManager.AssertMainThread();
+        SDL.SetRenderDrawColor(RayBlastEngine.renderer, color32.r, color32.g, color32.b, color32.a);
+        //TODO: Figure out how to eliminate allocation
+        var temp = new SDL.FPoint[points.Length];
+        MemoryMarshal.Cast<Vector2, SDL.FPoint>(points).CopyTo(temp);
+        SDL.RenderPoints(RayBlastEngine.renderer, temp, points.Length);
+    }
 
     public static void DrawRectangle(float x, float y,
                                      float width, float height,

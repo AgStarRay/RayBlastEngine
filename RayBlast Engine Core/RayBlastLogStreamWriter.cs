@@ -106,8 +106,8 @@ public class RayBlastLogStreamWriter : TextWriter {
 	}
 
 	public override void Write(string? value) {
-		consoleWriter.Write(value.AsSpan());
-		fileStreamWriter.Write(value.AsSpan());
+		consoleWriter.Write(value);
+		fileStreamWriter.Write(value);
 	}
 
 	public override void Write(StringBuilder? value) {
