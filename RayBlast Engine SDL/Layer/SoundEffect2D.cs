@@ -81,7 +81,7 @@ public class SoundEffect2D {
 
 	private static SoundEffect2D SpawnSound(SoundClip clip, float polymorphicMultiplier) {
 		var se = new SoundEffect2D();
-		se.Voice!.clip = clip;
+		se.Voice!.source = clip;
 		se.UpdateSource();
 		if(Time.time - polymorphicTime > 0.015f) {
 			POLYMORPHIC_ENTRIES.Clear();

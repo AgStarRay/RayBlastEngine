@@ -13,7 +13,8 @@ internal class RayBlastSoundMixer : ISampleProvider {
     private float[] sourceBuffer = [];
     public int processedUpdates;
 
-    public WaveFormat WaveFormat { get; private set; } = WaveFormat.CreateIeeeFloatWaveFormat(44100, 2);
+    //TODO: Use audio device frequency
+    public WaveFormat WaveFormat { get; private set; } = WaveFormat.CreateIeeeFloatWaveFormat(DigitalSoundProcessing.OutputFrequency, 2);
     public int SourceCount => sources.Count;
 
     public void Reset(int newSampleRate) {
@@ -29,7 +30,7 @@ internal class RayBlastSoundMixer : ISampleProvider {
             //TODO_URGENT: Handle pitch
             // Raylib.SetAudioStreamPitch(stream, voice.pitch * wave.SampleRate / outputFrequency);
             if(sources.Count >= virtualVoiceCount) {
-                Debug.LogWarning($"Could not play {voice.clip.Name}, hit virtual voice limit of {virtualVoiceCount}");
+                Debug.LogWarning($"Could not play {voice.source.Name}, hit virtual voice limit of {virtualVoiceCount}");
             }
             else if(!sources.Contains(voice)) {
                 sources.Add(voice);

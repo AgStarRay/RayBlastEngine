@@ -1,11 +1,9 @@
-﻿using System.Runtime.InteropServices;
-using NAudio.Wave;
+﻿using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
-using SDL3;
 
 namespace RayBlast;
 
-public class SoundClip {
+public class SoundClip : ISoundFiniteSource {
 	public static readonly SoundClip SILENCE;
 
 	public readonly float length;
@@ -13,7 +11,6 @@ public class SoundClip {
 	// private readonly IntPtr buffer;
 	// private readonly int channels;
 	// private readonly SDL.AudioFormat format;
-	internal readonly ISampleProvider sampleProvider;
 	internal readonly WaveStream? stream;
 	internal readonly byte[]? audioData;
 
@@ -46,7 +43,7 @@ public class SoundClip {
 	internal SoundClip(string name, ISampleProvider sampleProvider,
 					   int sampleCount, WaveStream? instancingStream) {
 		Name = name;
-		this.sampleProvider = sampleProvider;
+		SampleProvider = sampleProvider;
 		stream = instancingStream;
 		SampleCount = sampleCount;
 		Frequency = sampleProvider.WaveFormat.SampleRate;
@@ -56,7 +53,7 @@ public class SoundClip {
 	internal SoundClip(string name, ISampleProvider sampleProvider,
 					   int sampleCount, byte[] audioData) {
 		Name = name;
-		this.sampleProvider = sampleProvider;
+		SampleProvider = sampleProvider;
 		this.audioData = audioData;
 		SampleCount = sampleCount;
 		Frequency = sampleProvider.WaveFormat.SampleRate;
@@ -66,4 +63,5 @@ public class SoundClip {
 	public int SampleCount { get; }
 	public int Frequency { get; }
 	public string Name { get; set; }
+	public ISampleProvider SampleProvider { get; }
 }

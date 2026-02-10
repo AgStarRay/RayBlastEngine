@@ -7,15 +7,15 @@ public class AudioVoice : IDisposable {
     public float Time {
         get {
             if(sampleProvider != null)
-                return samplePosition / (float)(finalMixSampleProvider ?? sampleProvider).WaveFormat.SampleRate;
+                return SamplePosition / (float)(finalMixSampleProvider ?? sampleProvider).WaveFormat.SampleRate;
             return 0f;
         }
         set {
             if(sampleProvider != null)
-                samplePosition = (int)(value * (finalMixSampleProvider ?? sampleProvider).WaveFormat.SampleRate);
+                SamplePosition = (int)(value * (finalMixSampleProvider ?? sampleProvider).WaveFormat.SampleRate);
         }
     }
-    public SoundClip clip;
+    public ISoundSource source;
     public bool IsPlaying => DigitalSoundProcessing.IsPlaying(this);
     public float volume;
     public float pitch;
@@ -23,7 +23,7 @@ public class AudioVoice : IDisposable {
     public bool looping;
     public uint skipFrom;
     public uint skipTo;
-    public int samplePosition {
+    public int SamplePosition {
         get {
             if(sampleProvider != null)
                 return (int)(playbackStream?.Position ?? 0 / (finalMixSampleProvider ?? sampleProvider).WaveFormat.BlockAlign);
@@ -31,7 +31,7 @@ public class AudioVoice : IDisposable {
         }
         set {
             if(sampleProvider != null)
-                playbackStream!.Position = value * (finalMixSampleProvider ?? sampleProvider).WaveFormat.BlockAlign;
+                playbackStream?.Position = value * (finalMixSampleProvider ?? sampleProvider).WaveFormat.BlockAlign;
         }
     }
     public double dspEnter;
@@ -49,8 +49,8 @@ public class AudioVoice : IDisposable {
     public AudioVoice() : this(SoundClip.SILENCE) {
     }
 
-    public AudioVoice(SoundClip clip) {
-        this.clip = clip;
+    public AudioVoice(SoundClip source) {
+        this.source = source;
         pitch = 1f;
         volume = 1f;
         skipFrom = 0;
@@ -58,13 +58,13 @@ public class AudioVoice : IDisposable {
 
     public void Play() {
         DigitalSoundProcessing.Stop(this);
-        samplePosition = 0;
+        SamplePosition = 0;
         DigitalSoundProcessing.Play(this);
     }
 
     public void Play(int startingSample) {
         DigitalSoundProcessing.Stop(this);
-        samplePosition = startingSample;
+        SamplePosition = startingSample;
         DigitalSoundProcessing.Play(this);
     }
 
@@ -84,7 +84,7 @@ public class AudioVoice : IDisposable {
 
     public void Stop() {
         DigitalSoundProcessing.Stop(this);
-        samplePosition = 0;
+        SamplePosition = 0;
     }
 
     public void SetScheduledStartTime(double newDspTime) {
@@ -100,7 +100,8 @@ public class AudioVoice : IDisposable {
         if(!disposed && memoryStream != null) {
             disposed = true;
             finalMixSampleProvider = null;
-            UnmanagedManager.EnqueueUnloadStream(playbackStream!);
+            if(playbackStream != null)
+                UnmanagedManager.EnqueueUnloadStream(playbackStream);
             UnmanagedManager.EnqueueUnloadStream(memoryStream);
         }
     }

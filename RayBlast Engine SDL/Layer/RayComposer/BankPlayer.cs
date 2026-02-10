@@ -64,7 +64,7 @@ public class BankPlayer {
 
     public SignaturePoint[] SignaturePoints => CurrentBank.signaturePoints;
 
-    public float MainBPM => CurrentBank?.mainBPM ?? 120f;
+    public float MainBPM => CurrentBank.mainBPM;
 
     public float CurrentTime {
         get => sources.Count > 0 ? sources[0].Time : 0f;
@@ -77,7 +77,7 @@ public class BankPlayer {
     }
 
     public int CurrentSample {
-        get => sources.Count > 0 ? sources[0].samplePosition : 0;
+        get => sources.Count > 0 ? sources[0].SamplePosition : 0;
         set {
             value = Math.Max(value % SampleLength, 0);
             foreach(AudioVoice s in sources) {
@@ -106,8 +106,11 @@ public class BankPlayer {
         }
     }
 
-    public float ClipLength => sources.Count > 0 ? sources[0].clip.length : 0f;
-    public int SampleLength => sources.Count > 0 ? sources[0].clip.SampleCount : 0;
+    //TODO: Re-implement
+    // public float ClipLength => sources.Count > 0 ? sources[0].source.Length : 0f;
+    // public int SampleLength => sources.Count > 0 ? sources[0].source.SampleCount : 0;
+    public float ClipLength => 0f;
+    public int SampleLength => 0;
 
     // public double TimeToNextJump => (DSPNextTime - AudioSettings.dspTime);
 
@@ -126,7 +129,7 @@ public class BankPlayer {
             return sources.Count > 0 && sources[0].IsPlaying;
         }
     }
-    public int ClipFrequency => sources.Count > 0 ? sources[0].clip.Frequency : 8000;
+    public int ClipFrequency => sources.Count > 0 ? sources[0].source.Frequency : 8000;
 
     public void Update() {
         // if(pitchBendMixer == null) {

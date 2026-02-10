@@ -29,8 +29,8 @@ public class RayBlastWdlResampler : ISampleProvider {
         resampler.SetRates(source.WaveFormat.SampleRate * pitch, WaveFormat.SampleRate);
         int num1 = count / channels;
         int num2 = resampler.ResamplePrepare(num1, outFormat.Channels, out float[] inbuffer, out int inbufferOffset);
-        int nsamples_in = source.Read(inbuffer, inbufferOffset, num2 * channels) / channels;
-        int resampleOut = resampler.ResampleOut(buffer, offset, nsamples_in, num1, channels) * channels;
+        int inSamples = source.Read(inbuffer, inbufferOffset, num2 * channels) / channels;
+        int resampleOut = resampler.ResampleOut(buffer, offset, inSamples, num1, channels) * channels;
         shifter?.PitchShift(1f, count, WaveFormat.SampleRate, buffer);
         return resampleOut;
     }

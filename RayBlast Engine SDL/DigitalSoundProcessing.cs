@@ -11,6 +11,7 @@ public static class DigitalSoundProcessing {
     private static readonly RayBlastSoundMixer MIXER = new();
     internal static bool pendingReset;
     public static int ProcessedUpdates => MIXER.processedUpdates;
+    public static int OutputFrequency { get; private set; } = 44100;
 
     internal static void Initialize() {
         pendingReset = false;
@@ -21,8 +22,9 @@ public static class DigitalSoundProcessing {
         Debug.LogDebug("Load audio output device", false);
         waveOut = new WaveOutEvent();
         waveOut.DesiredLatency = 66;
-        MIXER.Reset(44100);
+        MIXER.Reset(OutputFrequency);
         waveOut.Init(MIXER);
+        OutputFrequency = waveOut.OutputWaveFormat.SampleRate;
         waveOut.Play();
     }
 
@@ -30,24 +32,32 @@ public static class DigitalSoundProcessing {
         if(voice.disposed)
             return;
         if(voice.memoryStream != null) {
-            UnmanagedManager.EnqueueUnloadStream(voice.playbackStream!);
+            if(voice.playbackStream != null)
+                UnmanagedManager.EnqueueUnloadStream(voice.playbackStream);
             UnmanagedManager.EnqueueUnloadStream(voice.memoryStream);
         }
-        if(voice.clip.audioData != null) {
-            voice.memoryStream = new MemoryStream(voice.clip.audioData);
-            voice.playbackStream = new WaveFileReader(voice.memoryStream);
-            voice.sampleProvider = voice.playbackStream.ToSampleProvider();
+        switch(voice.source) {
+        case SoundClip soundClip:
+            if(soundClip.audioData != null) {
+                voice.memoryStream = new MemoryStream(soundClip.audioData);
+                voice.playbackStream = new WaveFileReader(voice.memoryStream);
+                voice.sampleProvider = voice.playbackStream.ToSampleProvider();
+            }
+            else if(soundClip.stream != null) {
+                voice.playbackStream = soundClip.stream;
+                voice.sampleProvider = voice.source.SampleProvider;
+            }
+            else
+                throw new RayBlastEngineException($"{voice.source.Name} is missing stream or sample data");
+            break;
+        default:
+            voice.playbackStream = null;
+            voice.sampleProvider = voice.source.SampleProvider;
+            break;
         }
-        else if(voice.clip.stream != null) {
-            voice.playbackStream = voice.clip.stream;
-            voice.sampleProvider = voice.clip.sampleProvider;
-        }
-        else
-            throw new RayBlastEngineException($"{voice.clip.Name} is missing stream or sample data");
         voice.finalMixSampleProvider = null;
         MIXER.Play(voice);
     }
-
 
     internal static void Stop(AudioVoice voice) {
         MIXER.Stop(voice);
@@ -103,8 +113,8 @@ public static class DigitalSoundProcessing {
             return Color32.BLACK;
         }
         AudioVoice? voice = MIXER.GetSource(index);
-        if(voice?.IsPlaying ?? false) {
-            int voiceProgress = (int)(voice.samplePosition * 255L / Math.Max(voice.clip.SampleCount, 256L));
+        if((voice?.IsPlaying ?? false) && voice.source is SoundClip soundClip) {
+            int voiceProgress = (int)(voice.SamplePosition * 255L / Math.Max(soundClip.SampleCount, 256L));
             // bool behind = index < sources.Length
             // 		   && RayBlastEngine.WATCH.ElapsedTicks - voice.lastUpdate > TimeSpan.TicksPerSecond * 2 / INTERVAL_DENOMINATOR;
             return new Color32(0, 255 - voiceProgress / 3, voiceProgress);
