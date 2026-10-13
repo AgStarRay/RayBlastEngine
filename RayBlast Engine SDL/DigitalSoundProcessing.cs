@@ -1,4 +1,5 @@
 ﻿using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
 
 namespace RayBlast;
 
@@ -7,7 +8,7 @@ namespace RayBlast;
 //TODO: If realVoiceLimit is hit, trade out virtual voices with higher priority
 //TODO: If attempting to play a sound over the virtualVoiceLimit, stop a sound with lower priority
 public static class DigitalSoundProcessing {
-    private static WaveOutEvent? waveOut;
+    private static IWavePlayer? wavePlayer;
     private static readonly RayBlastSoundMixer MIXER = new();
     internal static bool pendingReset;
     public static int ProcessedUpdates => MIXER.processedUpdates;
@@ -15,17 +16,42 @@ public static class DigitalSoundProcessing {
 
     internal static void Initialize() {
         pendingReset = false;
-        MIXER.realVoiceCount = AudioSettings.RealVoiceCount;
-        MIXER.virtualVoiceCount = AudioSettings.VirtualVoiceCount;
         Shutdown();
-
         Debug.LogDebug("Load audio output device", false);
-        waveOut = new WaveOutEvent();
-        waveOut.DesiredLatency = 66;
-        MIXER.Reset(OutputFrequency);
-        waveOut.Init(MIXER);
-        OutputFrequency = waveOut.OutputWaveFormat.SampleRate;
-        waveOut.Play();
+        #if OS_WINDOWS
+        if(OperatingSystem.IsWindows()) {
+            MIXER.virtualVoiceCount = AudioSettings.VirtualVoiceCount;
+            MIXER.realVoiceCount = AudioSettings.RealVoiceCount;
+            var waveOut = new WaveOut();
+            waveOut.BufferMilliseconds = 50;
+            wavePlayer = waveOut;
+            MIXER.Reset(OutputFrequency);
+            wavePlayer.Init(MIXER);
+            OutputFrequency = wavePlayer.OutputWaveFormat.SampleRate;
+            wavePlayer.Play();
+        }
+        else
+            throw new RayBlastEngineException("Preprocessor flags are not assigned correctly");
+        #elif OS_LINUX
+        if(OperatingSystem.IsLinux()) {
+            MIXER.virtualVoiceCount = AudioSettings.VirtualVoiceCount;
+            MIXER.realVoiceCount = AudioSettings.RealVoiceCount;
+            var waveOut = new NAudio.Wave.Alsa.AlsaOut();
+            waveOut.Volume = 1f;
+            wavePlayer = waveOut;
+            // waveOut.DesiredLatency = 66;
+            MIXER.Reset(OutputFrequency);
+            wavePlayer.Init(MIXER);
+            OutputFrequency = wavePlayer.OutputWaveFormat.SampleRate;
+            wavePlayer.Play();
+        }
+        else
+            throw new RayBlastEngineException("Preprocessor flags are not assigned correctly");
+        #else
+        Debug.LogError("Unsupported operating system for NAudio");
+        MIXER.virtualVoiceCount = 0;
+        MIXER.realVoiceCount = 0;
+        #endif
     }
 
     internal static void Play(AudioVoice voice) {
@@ -39,12 +65,11 @@ public static class DigitalSoundProcessing {
         switch(voice.source) {
         case SoundClip soundClip:
             if(soundClip.audioData != null) {
-                voice.memoryStream = new MemoryStream(soundClip.audioData);
-                voice.playbackStream = new WaveFileReader(voice.memoryStream);
+                (voice.playbackStream, voice.memoryStream) = soundClip.CreatePlaybackStream();
                 voice.sampleProvider = voice.playbackStream.ToSampleProvider();
             }
             else if(soundClip.stream != null) {
-                voice.playbackStream = soundClip.stream;
+                voice.playbackStream = new LoopingWaveStream(soundClip.stream);
                 voice.sampleProvider = voice.source.SampleProvider;
             }
             else
@@ -82,7 +107,7 @@ public static class DigitalSoundProcessing {
 
     public static void AddDebugGraphics(int anchorX, int anchorY) {
         int trackedY = anchorY;
-        for(int i = 0; i < MIXER.realVoiceCount; i++) {
+        for(var i = 0; i < MIXER.realVoiceCount; i++) {
             if(i % 8 == 0) {
                 trackedY -= 8;
             }
@@ -114,7 +139,7 @@ public static class DigitalSoundProcessing {
         }
         AudioVoice? voice = MIXER.GetSource(index);
         if((voice?.IsPlaying ?? false) && voice.source is SoundClip soundClip) {
-            int voiceProgress = (int)(voice.SamplePosition * 255L / Math.Max(soundClip.SampleCount, 256L));
+            var voiceProgress = (int)(voice.SamplePosition * 255L / Math.Max(soundClip.SampleCount, 256L));
             // bool behind = index < sources.Length
             // 		   && RayBlastEngine.WATCH.ElapsedTicks - voice.lastUpdate > TimeSpan.TicksPerSecond * 2 / INTERVAL_DENOMINATOR;
             return new Color32(0, 255 - voiceProgress / 3, voiceProgress);
@@ -123,6 +148,6 @@ public static class DigitalSoundProcessing {
     }
 
     public static void Shutdown() {
-        waveOut?.Dispose();
+        wavePlayer?.Dispose();
     }
 }

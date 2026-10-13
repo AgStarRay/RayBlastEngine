@@ -5,6 +5,8 @@ using Cysharp.Text;
 namespace RayBlast;
 
 public static class FastRNG {
+    private const ulong SAMPLE_ADDITIVE = 0xb5ad4eceda1ce2a9;
+
     private static ulong state;
 
     static FastRNG() {
@@ -198,7 +200,7 @@ public static class FastRNG {
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private static ulong Mutate() {
-        return state = BitOperations.RotateLeft(state + 0xb5ad4eceda1ce2a9, 33);
+    public static ulong Mutate() {
+        return state = BitOperations.RotateLeft(state + SAMPLE_ADDITIVE, 33);
     }
 }

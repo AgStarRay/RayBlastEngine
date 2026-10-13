@@ -4,21 +4,18 @@ using SDL3;
 
 namespace RayBlast;
 
-public static unsafe class BatchMode2D {
-    private static Texture? currentTexture;
+public unsafe class BatchMode2D {
+    public bool isStatic = false;
+    private Texture? currentTexture;
 
-    private static float[] xy = new float[262144];
-    private static SDL.FColor[] colors = new SDL.FColor[131072];
-    private static float[] uv = new float[262144];
-    private static int[] indices = new int[262144];
-    private static int vertexCount;
-    private static int indexCount;
+    private float[] xy = new float[8192];
+    private ColorF[] colors = new ColorF[4096];
+    private float[] uv = new float[8192];
+    private int[] indices = new int[8192];
+    private int vertexCount;
+    private int indexCount;
 
-    static BatchMode2D() {
-    }
-
-    public static void StartBatch(Texture texture) {
-        UnmanagedManager.AssertMainThread();
+    public void StartBatch(Texture texture) {
         if(currentTexture != null)
             Debug.LogWarning("Batch aborted");
         currentTexture = texture;
@@ -26,64 +23,61 @@ public static unsafe class BatchMode2D {
         indexCount = 0;
     }
 
-    public static void Flush() {
+    public void Flush() {
         if(currentTexture != null && vertexCount > 0)
             Render();
     }
 
-    public static void Render() {
+    public void Render() {
         UnmanagedManager.AssertMainThread();
-        if(currentTexture == null)
-            throw new RayBlastEngineException("Batch not started");
-        if(RayBlastEngine.renderer == IntPtr.Zero)
-            throw new RayBlastEngineException("Renderer not initialized");
-        if(currentTexture.internalTexture == IntPtr.Zero) {
-            IntPtr intPtr = currentTexture.internalDataPtr;
-            if(intPtr == IntPtr.Zero)
-                throw new RayBlastEngineException("Attempted to render uninitialized texture");
-            currentTexture.internalTexture = SDL.CreateTextureFromSurface(RayBlastEngine.renderer, intPtr);
-            if(currentTexture.internalTexture == IntPtr.Zero)
-                throw new RayBlastEngineException($"Failed to create texture from surface: {SDL.GetError()}");
-            SDL.SetTextureBlendMode(currentTexture.internalTexture, Graphics.BLEND_WITH_PREMULTIPLY_ALPHA);
+        if(vertexCount > 0) {
+            if(currentTexture == null)
+                throw new RayBlastEngineException("Batch not started");
+            if(RayBlastEngine.currentWindowPane.renderer == IntPtr.Zero)
+                throw new RayBlastEngineException("Renderer not initialized");
+            currentTexture.PerformUpdate();
+            bool success = SDL.RenderGeometryRaw(RayBlastEngine.currentWindowPane.renderer, currentTexture.internalTexture,
+                                                 xy, 2 * sizeof(float),
+                                                 MemoryMarshal.Cast<ColorF, SDL.FColor>(colors.AsSpan()), sizeof(SDL.FColor),
+                                                 uv, 2 * sizeof(float), vertexCount,
+                                                 indices, indexCount, sizeof(int));
+            if(!success)
+                Debug.LogError($"Failed to render 2D batch: {SDL.GetError()}", false);
         }
-        bool success = SDL.RenderGeometryRaw(RayBlastEngine.renderer, currentTexture.internalTexture,
-                                             xy, 2 * sizeof(float),
-                                             colors, sizeof(SDL.FColor),
-                                             uv, 2 * sizeof(float), vertexCount,
-                                             indices, indexCount, sizeof(int));
-        if(!success)
-            Debug.LogError($"Failed to render 2D batch: {SDL.GetError()}", false);
-        currentTexture = null;
+        if(!isStatic)
+            Toss();
     }
 
-    public static void DrawRectangle(float x, float y,
-                                     float width, float height,
-                                     ColorF color) {
-        UnmanagedManager.AssertMainThread();
+    public void Toss() {
+        currentTexture = null;
+        vertexCount = 0;
+        indexCount = 0;
+    }
+
+    public void DrawRectangle(float x, float y,
+                              float width, float height,
+                              ColorF color) {
         throw new NotImplementedException();
     }
 
-    public static void DrawRectangleOutline(float x, float y,
-                                            float width, float height,
-                                            uint outlineSize, ColorF color) {
+    public void DrawRectangleOutline(float x, float y,
+                                     float width, float height,
+                                     uint outlineSize, ColorF color) {
         if(outlineSize >= width / 2f || outlineSize >= height / 2f) {
             DrawRectangle(x, y, width, height, color);
         }
         else {
-            UnmanagedManager.AssertMainThread();
             throw new NotImplementedException();
         }
     }
 
-    public static void DrawTriangle(Vector2 a, Vector2 b,
-                                    Vector2 c, ColorF color) {
-        UnmanagedManager.AssertMainThread();
+    public void DrawTriangle(Vector2 a, Vector2 b,
+                             Vector2 c, ColorF color) {
         throw new NotImplementedException();
     }
 
-    public static void DrawQuad(Vector2 origin, Quaternion rotation,
-                                Vector2 size, ColorF color) {
-        UnmanagedManager.AssertMainThread();
+    public void DrawQuad(Vector2 origin, Quaternion rotation,
+                         Vector2 size, ColorF color) {
         Vector2 a = origin + Vector2.Transform(new Vector2(-size.X / 2f, size.Y / 2f), rotation);
         Vector2 b = origin + Vector2.Transform(new Vector2(size.X / 2f, size.Y / 2f), rotation);
         Vector2 c = origin + Vector2.Transform(new Vector2(-size.X / 2f, -size.Y / 2f), rotation);
@@ -91,38 +85,56 @@ public static unsafe class BatchMode2D {
         throw new NotImplementedException();
     }
 
-    public static void DrawImage(int x, int y,
-                                 ColorF tint) {
-        UnmanagedManager.AssertMainThread();
+    public void DrawImage(int x, int y,
+                          ColorF tint) {
         throw new NotImplementedException();
     }
 
-    public static void DrawSubimage(TextureSubimage subimage, Vector2 destination,
-                                    ColorF tint) {
-        DrawSubimage(subimage, subimage.rectangle with {
+    public void DrawSubimage(TextureSubimage subimage, Vector2 destination,
+                             ColorF tint) {
+        if(subimage.texture != currentTexture)
+            throw new RayBlastEngineException("Mismatched texture for render batch");
+        DrawSubimage(subimage.rectangle, subimage.rectangle with {
                          X = destination.X, Y = destination.Y
                      }, new Vector2(0.5f, 0.5f), Quaternion.Identity,
                      tint);
     }
 
-    public static void DrawSubimage(TextureSubimage subimage, Vector4 destination,
-                                    ColorF tint) {
+    public void DrawSubimage(TextureSubimage subimage, Vector4 destination,
+                             ColorF tint) {
         DrawSubimage(subimage, destination, new Vector2(0.5f, 0.5f), Quaternion.Identity, tint);
     }
 
-    public static void DrawSubimage(TextureSubimage subimage, Vector4 destination,
-                                    Vector2 origin, ColorF tint) {
+    public void DrawSubimage(TextureSubimage subimage, Vector4 destination,
+                             Vector2 origin, ColorF tint) {
         DrawSubimage(subimage, destination, origin, Quaternion.Identity, tint);
     }
 
-    public static void DrawSubimage(TextureSubimage subimage, Vector4 destination,
-                                    Vector2 origin, Quaternion rotation,
-                                    ColorF tint) {
-        origin *= new Vector2(destination.Z, destination.W);
+    public void DrawSubimage(TextureSubimage subimage, Vector4 destination,
+                             Vector2 origin, Quaternion rotation,
+                             ColorF tint) {
         if(subimage.texture != currentTexture)
             throw new RayBlastEngineException("Mismatched texture for render batch");
+        DrawSubimage(subimage.rectangle, destination, origin, rotation, tint);
+    }
+
+    public void DrawSubimage(TextureSubimage subimage, Vector4 destination,
+                             Vector2 origin, Quaternion rotation,
+                             ColorF colA, ColorF colB,
+                             ColorF colC, ColorF colD) {
+        if(subimage.texture != currentTexture)
+            throw new RayBlastEngineException("Mismatched texture for render batch");
+        DrawSubimage(subimage.rectangle, destination, origin, rotation, colA, colB, colC, colD);
+    }
+
+    public void DrawSubimage(Vector4 subimageRectangle, Vector4 destination,
+                             Vector2 origin, Quaternion rotation,
+                             ColorF tint) {
+        if(currentTexture == null)
+            throw new RayBlastEngineException("Batch not started");
         EnsureVertices(4);
         EnsureIndices(6);
+        origin *= new Vector2(destination.Z, destination.W);
         int xyCount = vertexCount * 2;
         int uvIndex = vertexCount * 2;
         indices[indexCount++] = vertexCount;
@@ -131,7 +143,6 @@ public static unsafe class BatchMode2D {
         indices[indexCount++] = vertexCount + 1;
         indices[indexCount++] = vertexCount + 3;
         indices[indexCount++] = vertexCount + 2;
-        Vector4 subimageRectangle = subimage.rectangle;
         uv[uvIndex++] = subimageRectangle.X / currentTexture.Width;
         uv[uvIndex++] = subimageRectangle.Y / currentTexture.Height;
         uv[uvIndex++] = (subimageRectangle.X + subimageRectangle.Z) / currentTexture.Width;
@@ -140,11 +151,10 @@ public static unsafe class BatchMode2D {
         uv[uvIndex++] = (subimageRectangle.Y + subimageRectangle.W) / currentTexture.Height;
         uv[uvIndex++] = (subimageRectangle.X + subimageRectangle.Z) / currentTexture.Width;
         uv[uvIndex] = (subimageRectangle.Y + subimageRectangle.W) / currentTexture.Height;
-        SDL.FColor fColor = tint.ToSDL();
-        colors[vertexCount++] = fColor;
-        colors[vertexCount++] = fColor;
-        colors[vertexCount++] = fColor;
-        colors[vertexCount++] = fColor;
+        colors[vertexCount++] = tint;
+        colors[vertexCount++] = tint;
+        colors[vertexCount++] = tint;
+        colors[vertexCount++] = tint;
         if(rotation == Quaternion.Identity) {
             destination.X -= origin.X;
             destination.Y -= origin.Y;
@@ -173,15 +183,15 @@ public static unsafe class BatchMode2D {
         }
     }
 
-    public static void DrawSubimage(TextureSubimage subimage, Vector4 destination,
-                                    Vector2 origin, Quaternion rotation,
-                                    ColorF colA, ColorF colB,
-                                    ColorF colC, ColorF colD) {
-        origin *= new Vector2(destination.Z, destination.W);
-        if(subimage.texture != currentTexture)
-            throw new RayBlastEngineException("Mismatched texture for render batch");
+    public void DrawSubimage(Vector4 subimageRectangle, Vector4 destination,
+                             Vector2 origin, Quaternion rotation,
+                             ColorF colA, ColorF colB,
+                             ColorF colC, ColorF colD) {
+        if(currentTexture == null)
+            throw new RayBlastEngineException("Batch not started");
         EnsureVertices(4);
         EnsureIndices(6);
+        origin *= new Vector2(destination.Z, destination.W);
         int xyCount = vertexCount * 2;
         int uvIndex = vertexCount * 2;
         indices[indexCount++] = vertexCount;
@@ -190,7 +200,6 @@ public static unsafe class BatchMode2D {
         indices[indexCount++] = vertexCount + 1;
         indices[indexCount++] = vertexCount + 3;
         indices[indexCount++] = vertexCount + 2;
-        Vector4 subimageRectangle = subimage.rectangle;
         uv[uvIndex++] = subimageRectangle.X / currentTexture.Width;
         uv[uvIndex++] = subimageRectangle.Y / currentTexture.Height;
         uv[uvIndex++] = (subimageRectangle.X + subimageRectangle.Z) / currentTexture.Width;
@@ -199,10 +208,10 @@ public static unsafe class BatchMode2D {
         uv[uvIndex++] = (subimageRectangle.Y + subimageRectangle.W) / currentTexture.Height;
         uv[uvIndex++] = (subimageRectangle.X + subimageRectangle.Z) / currentTexture.Width;
         uv[uvIndex] = (subimageRectangle.Y + subimageRectangle.W) / currentTexture.Height;
-        colors[vertexCount++] = colA.ToSDL();
-        colors[vertexCount++] = colB.ToSDL();
-        colors[vertexCount++] = colC.ToSDL();
-        colors[vertexCount++] = colD.ToSDL();
+        colors[vertexCount++] = colA;
+        colors[vertexCount++] = colB;
+        colors[vertexCount++] = colC;
+        colors[vertexCount++] = colD;
         if(rotation == Quaternion.Identity) {
             destination.X -= origin.X;
             destination.Y -= origin.Y;
@@ -231,13 +240,12 @@ public static unsafe class BatchMode2D {
         }
     }
 
-    public static void DrawLine(Vector2 start, Vector2 end,
-                                ColorF color) {
-        UnmanagedManager.AssertMainThread();
+    public void DrawLine(Vector2 start, Vector2 end,
+                         ColorF color) {
         throw new NotImplementedException();
     }
 
-    private static void EnsureVertices(int newVertices) {
+    private void EnsureVertices(int newVertices) {
         if(vertexCount + newVertices > colors.Length) {
             Array.Resize(ref xy, xy.Length * 2);
             Array.Resize(ref colors, colors.Length * 2);
@@ -245,7 +253,7 @@ public static unsafe class BatchMode2D {
         }
     }
 
-    private static void EnsureIndices(int newIndices) {
+    private void EnsureIndices(int newIndices) {
         if(indexCount + newIndices > indices.Length) {
             Array.Resize(ref indices, indices.Length * 2);
         }

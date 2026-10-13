@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using Cysharp.Text;
 using SDL3;
 
@@ -16,6 +17,7 @@ public static partial class Input {
     internal static readonly Dictionary<uint, JoystickHistory> JOYSTICK_HISTORY = new();
     internal static readonly Dictionary<uint, IntPtr> OPEN_JOYSTICKS = new();
     internal static readonly Dictionary<uint, IntPtr> OPEN_GAMEPADS = new();
+    internal static readonly StringBuilder CAPTURED_INPUT_STRING_BUILDER = new();
 
     private static readonly List<Key> ALL_KEYS = [];
     private static readonly List<MouseCode> ALL_MOUSE_CODES = [];
@@ -33,14 +35,19 @@ public static partial class Input {
     internal static readonly ConcurrentQueue<InputJoystickButtonEvent> QUEUED_JOYSTICK_BUTTON_EVENTS = new();
     internal static readonly ConcurrentQueue<InputJoystickAxisEvent> QUEUED_JOYSTICK_AXIS_EVENTS = new();
     internal static readonly ConcurrentQueue<InputJoystickHatEvent> QUEUED_JOYSTICK_HAT_EVENTS = new();
+    internal static readonly Dictionary<uint, Vector2> CAPTURED_MOUSE_POSITIONS = [];
+    internal static readonly Dictionary<uint, Vector2> FRAME_MOUSE_POSITIONS = [];
+    internal static readonly Dictionary<uint, Vector2> CAPTURED_MOUSE_SCROLL_AMOUNTS = [];
+    internal static readonly Dictionary<uint, Vector2> FRAME_MOUSE_SCROLL_AMOUNTS = [];
 
     public static int pollsPerformed;
+    internal static uint focusedPaneID;
+    internal static uint mouseHoverPaneID;
+    internal static bool listeningToTextEvents;
 
     private static int pollSleepInterval = 1;
     private static long startTick;
     private static string inputStringOfThisFrame = "";
-    internal static Vector2 capturedMousePosition;
-    internal static Vector2 capturedMouseScrollAmount;
 
     public static event InputMouseEventHandler? OnMouseEvent;
     public static event InputKeyEventHandler? OnKeyboardEvent;
@@ -61,9 +68,24 @@ public static partial class Input {
 
     public static bool IsCapsLockOn => (SDL.GetModState() & SDL.Keymod.Caps) != 0;
     public static ushort ModState => (ushort)SDL.GetModState();
-    public static float ScrollAmount { get; internal set; }
-    public static Vector2 MouseViewport { get; internal set; }
-    public static Vector2 MousePosition { get; internal set; }
+    public static Vector2 ScrollAmount {
+        get {
+            FRAME_MOUSE_SCROLL_AMOUNTS.TryGetValue(RayBlastEngine.currentWindowPane.id, out Vector2 scrollAmount);
+            return scrollAmount;
+        }
+    }
+    public static Vector2 MouseViewport {
+        get {
+            Vector2 mousePos = MousePosition;
+            return mousePos / (Vector2)Graphics.CurrentResolution;
+        }
+    }
+    public static Vector2 MousePosition {
+        get {
+            FRAME_MOUSE_POSITIONS.TryGetValue(RayBlastEngine.currentWindowPane.id, out Vector2 mousePosition);
+            return mousePosition;
+        }
+    }
     public static bool MouseVisible { get; set; } = true;
     public static IEnumerable<uint> JoysticksConnected {
         get {
@@ -85,7 +107,7 @@ public static partial class Input {
             if(i != 0) {
                 ALL_KEYS.Add(i);
                 KEY_HISTORY[i] = new List<InputKeyEvent>(256) {
-                    new(i, false, 0.0)
+                    new(i, false, 0.0, 0)
                 };
                 KEY_EVENT_INDEXES[i] = 1;
                 ALL_KEY_STATES[i] = false;
@@ -99,7 +121,7 @@ public static partial class Input {
             if(i != 0) {
                 ALL_MOUSE_CODES.Add(i);
                 MOUSE_HISTORY[i] = new List<InputMouseEvent>(256) {
-                    new(i, false, 0f, 0f, 0.0)
+                    new(i, false, 0f, 0f, 0.0, 0)
                 };
                 MOUSE_EVENT_INDEXES[i] = 1;
                 ALL_MOUSE_STATES[i] = false;
@@ -116,11 +138,15 @@ public static partial class Input {
     }
 
     internal static void UpdateFrame() {
-        PollEvents();
-        ScrollAmount = capturedMouseScrollAmount.Y;
-        MousePosition = capturedMousePosition;
-        MouseViewport = new Vector2(capturedMousePosition.X / Graphics.CurrentResolution.X, capturedMousePosition.Y / Graphics.CurrentResolution.Y);
-        capturedMouseScrollAmount = Vector2.Zero;
+        ProcessEvents();
+        foreach(KeyValuePair<uint, Vector2> kvp in CAPTURED_MOUSE_POSITIONS) {
+            FRAME_MOUSE_POSITIONS[kvp.Key] = kvp.Value;
+        }
+        FRAME_MOUSE_SCROLL_AMOUNTS.Clear();
+        foreach(KeyValuePair<uint, Vector2> kvp in CAPTURED_MOUSE_SCROLL_AMOUNTS) {
+            FRAME_MOUSE_SCROLL_AMOUNTS[kvp.Key] = kvp.Value;
+        }
+        CAPTURED_MOUSE_SCROLL_AMOUNTS.Clear();
         foreach(Key k in ALL_KEYS) {
             int lastIndex = KEY_EVENT_INDEXES[k];
             var pressed = false;
@@ -159,30 +185,11 @@ public static partial class Input {
             history.FlushButtonStates();
         }
 
-        using Utf16ValueStringBuilder builder = ZString.CreateStringBuilder();
-        //TODO_URGENT: Create inputStringOfThisFrame
-        // PollEvents_ConcatenateCharacters:
-        // int charPressed = Raylib.GetCharPressed();
-        // if(charPressed != 0) {
-        // 	builder.Append((char)charPressed);
-        // 	goto PollEvents_ConcatenateCharacters;
-        // }
-        // if(IsKeyPressed(Key.Backspace))
-        // 	builder.Append('\b');
-        // if(Raylib.IsKeyPressedRepeat(KeyboardKey.Backspace))
-        // 	builder.Append('\b');
-        // if(IsKeyPressed(Key.Enter))
-        // 	builder.Append('\n');
-        // if(Raylib.IsKeyPressedRepeat(KeyboardKey.Enter))
-        // 	builder.Append('\n');
-        // if(IsKeyPressed(Key.KeypadEnter))
-        // 	builder.Append('\n');
-        // if(Raylib.IsKeyPressedRepeat(KeyboardKey.KpEnter))
-        // 	builder.Append('\n');
-        inputStringOfThisFrame = builder.ToString();
+        inputStringOfThisFrame = CAPTURED_INPUT_STRING_BUILDER.ToString();
+        CAPTURED_INPUT_STRING_BUILDER.Clear();
     }
 
-    public static void PollEvents() {
+    public static void ProcessEvents() {
         //TODO_URGENT: Sort by time
         while(QUEUED_EVENTS.TryDequeue(out InputType type)) {
             switch(type) {
@@ -286,6 +293,20 @@ public static partial class Input {
         if(mouseCode == MouseCode.Null)
             return false;
         return ALL_MOUSE_RELEASES[mouseCode];
+    }
+
+    public static void StartListeningToTextInput() {
+        bool success = SDL.StartTextInput(RayBlastEngine.currentWindowPane.window);
+        if(!success)
+            throw new RayBlastEngineException($"Could not start SDL text input: {SDL.GetError()}");
+        listeningToTextEvents = true;
+    }
+
+    public static void StopListeningToTextInput() {
+        bool success = SDL.StopTextInput(RayBlastEngine.currentWindowPane.window);
+        if(!success)
+            throw new RayBlastEngineException($"Could not stop SDL text input: {SDL.GetError()}");
+        listeningToTextEvents = false;
     }
 
     public static string GetInputStringOfThisFrame() {
@@ -499,9 +520,9 @@ public static partial class Input {
         return ((ulong)vendor << 48) | ((ulong)product << 32) | ((ulong)version << 16);
     }
 
-    public static string? GetJoystickName(uint id) {
+    public static string GetJoystickName(uint id) {
         RefreshJoysticks();
-        return OPEN_JOYSTICKS.TryGetValue(id, out IntPtr ptr) ? SDL.GetJoystickName(ptr) : "<not connected>";
+        return OPEN_JOYSTICKS.TryGetValue(id, out IntPtr ptr) ? SDL.GetJoystickName(ptr) ?? "???" : "<not connected>";
     }
 
     public static string GetJoystickPath(uint id) {

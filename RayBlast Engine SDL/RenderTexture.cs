@@ -8,13 +8,13 @@ public class RenderTexture : IDisposable {
         UnmanagedManager.AssertMainThread();
         Debug.LogDebug($"Load RenderTexture {width}x{height}");
         Texture = new Texture(willGenerateImage: false, willGenerateTexture: true, width, height);
-        Texture.internalTexture = SDL.CreateTexture(RayBlastEngine.renderer, SDL.PixelFormat.RGBA8888, SDL.TextureAccess.Target,
+        Texture.internalTexture = SDL.CreateTexture(RayBlastEngine.currentWindowPane.renderer, SDL.PixelFormat.ARGB8888, SDL.TextureAccess.Target,
                                                     width, width);
-        SDL.SetRenderTarget(RayBlastEngine.renderer, Texture.internalTexture);
-        SDL.GetRenderDrawColor(RayBlastEngine.renderer, out byte r, out byte g, out byte b, out byte a);
-        SDL.SetRenderDrawColor(RayBlastEngine.renderer, 0, 0, 0, 0);
-        SDL.RenderClear(RayBlastEngine.renderer);
-        SDL.SetRenderDrawColor(RayBlastEngine.renderer, r, g, b, a);
+        SDL.SetRenderTarget(RayBlastEngine.currentWindowPane.renderer, Texture.internalTexture);
+        SDL.GetRenderDrawColor(RayBlastEngine.currentWindowPane.renderer, out byte r, out byte g, out byte b, out byte a);
+        SDL.SetRenderDrawColor(RayBlastEngine.currentWindowPane.renderer, 0, 0, 0, 0);
+        SDL.RenderClear(RayBlastEngine.currentWindowPane.renderer);
+        SDL.SetRenderDrawColor(RayBlastEngine.currentWindowPane.renderer, r, g, b, a);
         SDL.SetTextureBlendMode(Texture.internalTexture, SDL.BlendMode.BlendPremultiplied);
     }
 

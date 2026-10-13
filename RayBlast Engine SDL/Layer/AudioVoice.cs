@@ -19,7 +19,7 @@ public class AudioVoice : IDisposable {
     public bool IsPlaying => DigitalSoundProcessing.IsPlaying(this);
     public float volume;
     public float pitch;
-    //TODO: Use these values
+    public float pan;
     public bool looping;
     public uint skipFrom;
     public uint skipTo;
@@ -40,7 +40,7 @@ public class AudioVoice : IDisposable {
 
     internal int endFrames;
     internal long lastUpdate;
-    internal WaveStream? playbackStream;
+    internal LoopingWaveStream? playbackStream;
     internal ISampleProvider? sampleProvider;
     internal RayBlastWdlResampler? finalMixSampleProvider;
     internal MemoryStream? memoryStream;
@@ -49,7 +49,7 @@ public class AudioVoice : IDisposable {
     public AudioVoice() : this(SoundClip.SILENCE) {
     }
 
-    public AudioVoice(SoundClip source) {
+    public AudioVoice(ISoundSource source) {
         this.source = source;
         pitch = 1f;
         volume = 1f;
@@ -113,5 +113,23 @@ public class AudioVoice : IDisposable {
 
     ~AudioVoice() {
         ReleaseUnmanagedResources();
+    }
+
+    public float GetSample(int samplePosition) {
+        if(memoryStream != null) {
+            long originalOffset = memoryStream.Position;
+            try {
+                memoryStream.Position = samplePosition * 4;
+                Span<byte> floatBuffer = stackalloc byte[sizeof(float)];
+                int readAmount = memoryStream.Read(floatBuffer);
+                if(readAmount < sizeof(float))
+                    return 0f;
+                return BitConverter.ToSingle(floatBuffer);
+            }
+            finally {
+                memoryStream.Position = originalOffset;
+            }
+        }
+        return 0f;
     }
 }

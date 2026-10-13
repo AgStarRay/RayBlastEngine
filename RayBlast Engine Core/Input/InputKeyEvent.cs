@@ -3,11 +3,17 @@
 namespace RayBlast;
 
 [StructLayout(LayoutKind.Explicit)]
-public struct InputKeyEvent(Key key, bool down, double timestamp) {
+public struct InputKeyEvent(
+    Key key,
+    bool down,
+    double timestamp,
+    uint windowID) {
     [FieldOffset(0)]
     public byte state = (byte)(down ? 1 : 0);
-    [FieldOffset(4)]
+    [FieldOffset(2)]
     public Key key = key;
+    [FieldOffset(4)]
+    public uint windowID = windowID;
     [FieldOffset(8)]
     public double time = timestamp;
 

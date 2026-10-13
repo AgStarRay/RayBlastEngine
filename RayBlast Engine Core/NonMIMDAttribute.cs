@@ -1,5 +1,4 @@
-﻿namespace RayBlast; 
+﻿namespace RayBlast;
 
 public class NonMIMDAttribute : Attribute {
-	
 }

@@ -47,7 +47,8 @@ public static class CustomMusic {
         }
         catch(UnauthorizedAccessException e) {
             jsonFileNames = Array.Empty<string>();
-            throw new RayBlastEngineException($"{e.Message}\n\nPlease check for a Music folder in the game directory, or create it if it doesn't exist.");
+            throw new RayBlastEngineException(
+                $"{e.Message}\n\nPlease check for a Music folder in the game directory, or create it if it doesn't exist.");
         }
     }
 

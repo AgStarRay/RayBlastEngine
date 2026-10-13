@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace RayBlast; 
+namespace RayBlast;
 
 public class TextureAtlas {
     public readonly Texture texture;

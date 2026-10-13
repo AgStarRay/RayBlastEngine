@@ -54,8 +54,11 @@ public class RayBlastSoundHttp : RayBlastHttp {
 			}
 			if(retrievedSampleProvider == null)
 				throw new RayBlastEngineException($"Failed to get a sample provider for {name}");
-			if(retrievedAudioData != null)
-				return new SoundClip(name, retrievedSampleProvider, retrievedSampleCount, retrievedAudioData);
+			if(retrievedAudioData != null) {
+				return new SoundClip(name, retrievedSampleProvider, retrievedSampleCount, retrievedAudioData) {
+					audioDataIsWav = true
+				};
+			}
 			if(retrievedStream != null)
 				return new SoundClip(name, retrievedSampleProvider, retrievedSampleCount, retrievedStream);
 			throw new RayBlastEngineException($"Failed to get the stream or sample data for {name}");
@@ -94,12 +97,13 @@ public class RayBlastSoundHttp : RayBlastHttp {
 				int bytesPerSample = vorbisReader.WaveFormat.Channels * vorbisReader.WaveFormat.BitsPerSample / 8;
 				retrievedSampleCount = (int)(vorbisReader.Length / bytesPerSample);
 				retrievedStream = vorbisReader;
-				// 	using var stream = new MemoryStream();
-				// 	WaveFileWriter.WriteWavFileToStream(stream, vorbisReader);
-				// 	fixed(void* ptr = stream.GetBuffer()) {
-				// 	    if(!SDL.LoadWAVIO(SDL.IOFromMem((IntPtr)ptr, (ulong)stream.Length), true, out retrievedSpec, out retrievedBuffer, out retrievedLength))
-				// 	        throw new RayBlastEngineException($"Failed to load OGG {uri.LocalPath}: {SDL.GetError()}");
-				// 	}
+
+				// using var stream = new MemoryStream();
+				// WaveFileWriter.WriteWavFileToStream(stream, vorbisReader);
+				// fixed(void* ptr = stream.GetBuffer()) {
+				//     if(!SDL.LoadWAVIO(SDL.IOFromMem((IntPtr)ptr, (ulong)stream.Length), true, out retrievedSpec, out retrievedBuffer, out retrievedLength))
+				//         throw new RayBlastEngineException($"Failed to load OGG {uri.LocalPath}: {SDL.GetError()}");
+				// }
 			}
 			else {
 				var audioFileReader = new AudioFileReader(uri.LocalPath);
@@ -111,7 +115,7 @@ public class RayBlastSoundHttp : RayBlastHttp {
 				// 	    throw new RayBlastEngineException($"Failed to load WAV {uri.LocalPath}: {SDL.GetError()}");
 			}
 			if(!LoadAsStreamable) {
-				var memoryStream = new MemoryStream();
+				using var memoryStream = new MemoryStream();
 				WaveFileWriter.WriteWavFileToStream(memoryStream, retrievedSampleProvider.ToWaveProvider());
 				retrievedAudioData = memoryStream.ToArray();
 				retrievedStream = null;

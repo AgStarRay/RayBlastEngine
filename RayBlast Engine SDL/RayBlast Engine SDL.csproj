@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
         <RootNamespace>RayBlast</RootNamespace>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
@@ -9,26 +8,30 @@
         <Configurations>RayBlast Release;RayBlast Debug;RayBlast Trace;RayBlast WebGL</Configurations>
         <Platforms>AnyCPU;browser-wasm</Platforms>
         <LangVersion>default</LangVersion>
-        <TargetFramework>net10.0</TargetFramework>
+        <TargetFramework Condition="$([MSBuild]::IsOSPlatform('Linux'))">net10.0</TargetFramework>
+        <TargetFramework Condition="$([MSBuild]::IsOSPlatform('Windows'))">net10.0-windows10.0.19041</TargetFramework>
     </PropertyGroup>
 
-    <PropertyGroup Condition=" $(Configuration.EndsWith('Release')) ">
+    <PropertyGroup Condition="$(Configuration.EndsWith('Release')) ">
         <DebugType>none</DebugType>
         <DebugSymbols>false</DebugSymbols>
         <Optimize>true</Optimize>
-        <DefineConstants>RELEASE</DefineConstants>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('Linux'))">OS_LINUX;RELEASE</DefineConstants>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('Windows'))">OS_WINDOWS;RELEASE</DefineConstants>
     </PropertyGroup>
 
-    <PropertyGroup Condition=" $(Configuration.EndsWith('Debug')) ">
+    <PropertyGroup Condition="$(Configuration.EndsWith('Debug')) ">
         <DebugType>full</DebugType>
         <DebugSymbols>true</DebugSymbols>
-        <DefineConstants>DEBUG</DefineConstants>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('Linux'))">OS_LINUX;DEBUG</DefineConstants>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('Windows'))">OS_WINDOWS;DEBUG</DefineConstants>
     </PropertyGroup>
 
     <PropertyGroup Condition=" $(Configuration.EndsWith('Trace')) ">
         <DebugType>full</DebugType>
         <DebugSymbols>true</DebugSymbols>
-        <DefineConstants>TRACE;DEBUG</DefineConstants>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('Linux'))">OS_LINUX;TRACE;DEBUG</DefineConstants>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('Windows'))">OS_WINDOWS;TRACE;DEBUG</DefineConstants>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'RayBlast Release' ">
@@ -41,14 +44,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="NAudio" Version="2.2.1"/>
+        <PackageReference Include="NAudio" Version="3.1.0" />
+        <PackageReference Include="NAudio.Alsa" Version="3.1.0" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
         <PackageReference Include="NAudio.Lame" Version="2.1.0"/>
-        <PackageReference Include="NAudio.Midi" Version="2.2.1"/>
-        <PackageReference Include="NAudio.Vorbis" Version="1.5.0"/>
-        <PackageReference Include="SDL3-CS" Version="3.3.6" />
-        <PackageReference Include="SDL3-CS.Native" Version="3.3.6" />
-        <PackageReference Include="SDL3-CS.Native.Image" Version="3.2.4"/>
-        <PackageReference Include="SDL3-CS.Native.TTF" Version="3.2.2"/>
+        <PackageReference Include="NAudio.Midi" Version="3.1.0" />
+        <PackageReference Include="NAudio.Vorbis" Version="3.0.0" />
+        <PackageReference Include="SDL3-CS" Version="3.4.16" />
+        <PackageReference Include="SDL3-CS.Native.Image" Version="3.5.0"/>
+        <PackageReference Include="SDL3-CS.Native.TTF" Version="3.3.0"/>
     </ItemGroup>
 
     <ItemGroup>

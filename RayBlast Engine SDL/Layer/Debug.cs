@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using System.Text;
 using Cysharp.Text;
@@ -11,116 +12,118 @@ using Cysharp.Text;
 namespace RayBlast;
 
 public static class Debug {
-	public static event Action<string, string, LogLevel>? logMessageReceived = null;
-	public static event Action<string, string>? fatalMessageReceived = null;
-	
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	internal static void LogTrace(string? message) {
-		#if TRACE
+    public static event Action<string, string, LogLevel>? logMessageReceived = null;
+    public static event Action<string, string>? fatalMessageReceived = null;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void LogTrace(string? message) {
+        #if TRACE
 		if(message != null)
 			RayBlastEngine.RecordLog(LogLevel.Trace, message, null);
-		#endif
-	}
+        #endif
+    }
 
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	internal static void LogDebug(string? message, bool includeStackTrace = true) {
-		#if DEBUG
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void LogDebug(string? message, bool includeStackTrace = true) {
+        #if DEBUG
         if(includeStackTrace || message != null) {
             ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
             RayBlastEngine.RecordLog(LogLevel.Debug, message ?? "<blank>", stackTrace);
         }
-		#endif
-	}
+        #endif
+    }
 
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static void Log(string? message, bool includeStackTrace = false) {
-		if(includeStackTrace || message != null) {
-			ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
-			RayBlastEngine.RecordLog(LogLevel.Info, message ?? "<blank>", stackTrace);
-		}
-	}
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Log(string? message, bool includeStackTrace = false) {
+        if(includeStackTrace || message != null) {
+            ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
+            RayBlastEngine.RecordLog(LogLevel.Info, message ?? "<blank>", stackTrace);
+        }
+    }
 
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static void Log(StringBuilder builder, bool includeStackTrace = false) {
-		ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
-		RayBlastEngine.RecordLog(LogLevel.Info, builder, stackTrace);
-	}
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Log(StringBuilder builder, bool includeStackTrace = false) {
+        ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
+        RayBlastEngine.RecordLog(LogLevel.Info, builder, stackTrace);
+    }
 
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static void Log(Utf8ValueStringBuilder builder, bool includeStackTrace = false) {
-		ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
-		RayBlastEngine.RecordLog(LogLevel.Info, builder, stackTrace);
-	}
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Log(Utf8ValueStringBuilder builder, bool includeStackTrace = false) {
+        ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
+        RayBlastEngine.RecordLog(LogLevel.Info, builder, stackTrace);
+    }
 
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static void Log(Utf16ValueStringBuilder builder, bool includeStackTrace = false) {
-		ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
-		RayBlastEngine.RecordLog(LogLevel.Info, builder.AsSpan(), stackTrace);
-	}
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Log(Utf16ValueStringBuilder builder, bool includeStackTrace = false) {
+        ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
+        RayBlastEngine.RecordLog(LogLevel.Info, builder.AsSpan(), stackTrace);
+    }
 
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static void LogWarning(string? message, bool includeStackTrace = false) {
-		if(includeStackTrace || message != null) {
-			ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
-			RayBlastEngine.RecordLog(LogLevel.Warning, message ?? "<blank>", stackTrace);
-		}
-	}
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void LogWarning(string? message, bool includeStackTrace = false) {
+        if(includeStackTrace || message != null) {
+            ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
+            RayBlastEngine.RecordLog(LogLevel.Warning, message ?? "<blank>", stackTrace);
+        }
+    }
 
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static void LogWarning(StringBuilder builder, bool includeStackTrace = false) {
-		ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
-		RayBlastEngine.RecordLog(LogLevel.Warning, builder, stackTrace);
-	}
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void LogWarning(StringBuilder builder, bool includeStackTrace = false) {
+        ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
+        RayBlastEngine.RecordLog(LogLevel.Warning, builder, stackTrace);
+    }
 
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static void LogWarning(Utf8ValueStringBuilder builder, bool includeStackTrace = false) {
-		ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
-		RayBlastEngine.RecordLog(LogLevel.Warning, builder, stackTrace);
-	}
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void LogWarning(Utf8ValueStringBuilder builder, bool includeStackTrace = false) {
+        ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
+        RayBlastEngine.RecordLog(LogLevel.Warning, builder, stackTrace);
+    }
 
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static void LogWarning(Utf16ValueStringBuilder builder, bool includeStackTrace = false) {
-		ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
-		RayBlastEngine.RecordLog(LogLevel.Warning, builder.AsSpan(), stackTrace);
-	}
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void LogWarning(Utf16ValueStringBuilder builder, bool includeStackTrace = false) {
+        ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
+        RayBlastEngine.RecordLog(LogLevel.Warning, builder.AsSpan(), stackTrace);
+    }
 
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static void LogError(string? message, bool includeStackTrace = true) {
-		if(includeStackTrace || message != null) {
-			ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
-			RayBlastEngine.RecordLog(LogLevel.Error, message ?? "<blank>", stackTrace);
-		}
-	}
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void LogError(string? message, bool includeStackTrace = true) {
+        if(includeStackTrace || message != null) {
+            ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
+            RayBlastEngine.RecordLog(LogLevel.Error, message ?? "<blank>", stackTrace);
+        }
+    }
 
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static void LogError(StringBuilder builder, bool includeStackTrace = true) {
-		ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
-		RayBlastEngine.RecordLog(LogLevel.Error, builder, stackTrace);
-	}
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void LogError(StringBuilder builder, bool includeStackTrace = true) {
+        ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
+        RayBlastEngine.RecordLog(LogLevel.Error, builder, stackTrace);
+    }
 
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static void LogError(Utf8ValueStringBuilder builder, bool includeStackTrace = true) {
-		ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
-		RayBlastEngine.RecordLog(LogLevel.Error, builder, stackTrace);
-	}
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void LogError(Utf8ValueStringBuilder builder, bool includeStackTrace = true) {
+        ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
+        RayBlastEngine.RecordLog(LogLevel.Error, builder, stackTrace);
+    }
 
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static void LogError(Utf16ValueStringBuilder builder, bool includeStackTrace = true) {
-		ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
-		RayBlastEngine.RecordLog(LogLevel.Error, builder.AsSpan(), stackTrace);
-	}
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void LogError(Utf16ValueStringBuilder builder, bool includeStackTrace = true) {
+        ReadOnlySpan<char> stackTrace = includeStackTrace ? TrimmedStackTrace() : null;
+        RayBlastEngine.RecordLog(LogLevel.Error, builder.AsSpan(), stackTrace);
+    }
 
-	public static void LogException(Exception exception) {
-		RayBlastEngine.RecordLog(LogLevel.Fatal, exception.Message, exception.StackTrace);
-	}
+    public static void LogException(Exception exception) {
+        RayBlastEngine.RecordLog(LogLevel.Fatal,
+                                 exception.InnerException != null ? $"{exception.Message}\n{exception.InnerException}" : exception.Message,
+                                 exception.StackTrace);
+    }
 
-	[MethodImpl(MethodImplOptions.NoInlining)]
-	private static ReadOnlySpan<char> TrimmedStackTrace() {
-		#if RAYBLAST_DEBUG
-			string fullStackTrace = Environment.StackTrace;
-			int firstNewline = fullStackTrace.IndexOf('\n') + 1;
-			return fullStackTrace.AsSpan(Math.Max(firstNewline, fullStackTrace.IndexOf('\n', firstNewline) + 1));
-		#else
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static ReadOnlySpan<char> TrimmedStackTrace() {
+        #if RAYBLAST_DEBUG
+        string fullStackTrace = Environment.StackTrace;
+        int firstNewline = fullStackTrace.IndexOf('\n') + 1;
+        return fullStackTrace.AsSpan(Math.Max(firstNewline, fullStackTrace.IndexOf('\n', firstNewline) + 1));
+        #else
 		using Utf16ValueStringBuilder builder = ZString.CreateStringBuilder();
 		var stackTrace = new StackTrace();
 		StackFrame[] frames = stackTrace.GetFrames();
@@ -209,10 +212,10 @@ public static class Debug {
 				builder.Append("  at <unknown>");
 		}
 		return builder.AsSpan();
-		#endif
-	}
+        #endif
+    }
 
-	#if !RAYBLAST_DEBUG
+    #if !RAYBLAST_DEBUG
 	private static bool ShowInStackTrace(MethodBase mb) {
 		// ReSharper disable once BitwiseOperatorOnEnumWithoutFlags
 		if((mb.MethodImplementationFlags & MethodImplAttributes.AggressiveInlining) != 0)
@@ -275,50 +278,59 @@ public static class Debug {
 		static IEnumerable<MethodInfo> GetDeclaredMethods(IReflect type) =>
 			type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 	}
-	#endif
+    #endif
 
-	public static string SystemProcessorName {
-		get {
-			if(!X86Base.IsSupported)
-				return "Unknown (no CPUID)";
-			// ReSharper disable once IdentifierTypo
-			(int eax, int _, int _, int _) = X86Base.CpuId(unchecked((int)0x80000000), 0);
-			if(eax < unchecked((int)0x80000004))
-				return "Unknown (no brand string)";
-			Span<int> raw = stackalloc int[12];
-			(raw[0], raw[1], raw[2], raw[3]) = X86Base.CpuId(unchecked((int)0x80000002), 0);
-			(raw[4], raw[5], raw[6], raw[7]) = X86Base.CpuId(unchecked((int)0x80000003), 0);
-			(raw[8], raw[9], raw[10], raw[11]) = X86Base.CpuId(unchecked((int)0x80000004), 0);
-			Span<byte> bytes = MemoryMarshal.AsBytes(raw);
-			return Encoding.UTF8.GetString(bytes).TrimEnd('\0').Trim();
-		}
-	}
+    public static string SystemProcessorName {
+        get {
+            try {
+                if(X86Base.IsSupported) {
+                    (int eax, int _, int _, int _) = X86Base.CpuId(unchecked((int)0x80000000), 0);
+                    if(eax < unchecked((int)0x80000004))
+                        return "Unknown (no brand string)";
+                    Span<int> raw = stackalloc int[12];
+                    (raw[0], raw[1], raw[2], raw[3]) = X86Base.CpuId(unchecked((int)0x80000002), 0);
+                    (raw[4], raw[5], raw[6], raw[7]) = X86Base.CpuId(unchecked((int)0x80000003), 0);
+                    (raw[8], raw[9], raw[10], raw[11]) = X86Base.CpuId(unchecked((int)0x80000004), 0);
+                    Span<byte> bytes = MemoryMarshal.AsBytes(raw);
+                    return Encoding.UTF8.GetString(bytes).TrimEnd('\0').Trim();
+                }
+                if(ArmBase.IsSupported) {
+                    //TODO: Find a way to use the MRS instruction on AArch64
+                    return "Unknown (ARM)";
+                }
+                return "Unknown (x86 unavailable)";
+            }
+            catch {
+                return "Unknown (error during retrieval)";
+            }
+        }
+    }
 
-	public static void HandleMessageReceived(string logMessage, ReadOnlySpan<char> stackTrace,
-											 LogLevel msgType) {
-		logMessageReceived?.Invoke(logMessage, stackTrace.ToString(), msgType);
-		if(msgType == LogLevel.Fatal)
-			fatalMessageReceived?.Invoke(logMessage, stackTrace.ToString());
-	}
+    public static void HandleMessageReceived(string logMessage, ReadOnlySpan<char> stackTrace,
+                                             LogLevel msgType) {
+        logMessageReceived?.Invoke(logMessage, stackTrace.ToString(), msgType);
+        if(msgType == LogLevel.Fatal)
+            fatalMessageReceived?.Invoke(logMessage, stackTrace.ToString());
+    }
 
-	public static void HandleMessageReceived(StringBuilder logMessage, ReadOnlySpan<char> stackTrace,
-											 LogLevel msgType) {
-		logMessageReceived?.Invoke(logMessage.ToString(), stackTrace.ToString(), msgType);
-		if(msgType == LogLevel.Fatal)
-			fatalMessageReceived?.Invoke(logMessage.ToString(), stackTrace.ToString());
-	}
+    public static void HandleMessageReceived(StringBuilder logMessage, ReadOnlySpan<char> stackTrace,
+                                             LogLevel msgType) {
+        logMessageReceived?.Invoke(logMessage.ToString(), stackTrace.ToString(), msgType);
+        if(msgType == LogLevel.Fatal)
+            fatalMessageReceived?.Invoke(logMessage.ToString(), stackTrace.ToString());
+    }
 
-	public static void HandleMessageReceived(ReadOnlySpan<char> logMessage, ReadOnlySpan<char> stackTrace,
-											 LogLevel msgType) {
-		logMessageReceived?.Invoke(logMessage.ToString(), stackTrace.ToString(), msgType);
-		if(msgType == LogLevel.Fatal)
-			fatalMessageReceived?.Invoke(logMessage.ToString(), stackTrace.ToString());
-	}
+    public static void HandleMessageReceived(ReadOnlySpan<char> logMessage, ReadOnlySpan<char> stackTrace,
+                                             LogLevel msgType) {
+        logMessageReceived?.Invoke(logMessage.ToString(), stackTrace.ToString(), msgType);
+        if(msgType == LogLevel.Fatal)
+            fatalMessageReceived?.Invoke(logMessage.ToString(), stackTrace.ToString());
+    }
 
-	public static void HandleMessageReceived(Utf8ValueStringBuilder logMessage, ReadOnlySpan<char> stackTrace,
-											 LogLevel msgType) {
-		logMessageReceived?.Invoke(logMessage.ToString(), stackTrace.ToString(), msgType);
-		if(msgType == LogLevel.Fatal)
-			fatalMessageReceived?.Invoke(logMessage.ToString(), stackTrace.ToString());
-	}
+    public static void HandleMessageReceived(Utf8ValueStringBuilder logMessage, ReadOnlySpan<char> stackTrace,
+                                             LogLevel msgType) {
+        logMessageReceived?.Invoke(logMessage.ToString(), stackTrace.ToString(), msgType);
+        if(msgType == LogLevel.Fatal)
+            fatalMessageReceived?.Invoke(logMessage.ToString(), stackTrace.ToString());
+    }
 }

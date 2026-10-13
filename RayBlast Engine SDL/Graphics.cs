@@ -43,13 +43,14 @@ public static class Graphics {
     }
 
     public static int VSyncCount { get; set; } = 1;
+    //TODO: Implement
     public static int MaxQueuedFrames { get; set; } = 1;
     public static FullscreenMode FullscreenMode { get; set; } = FullscreenMode.Windowed;
     public static S32X2 CurrentResolution {
         get {
-            if(RayBlastEngine.window == IntPtr.Zero)
+            if(RayBlastEngine.currentWindowPane.window == IntPtr.Zero)
                 throw new RayBlastEngineException("Window not initialized");
-            if(!SDL.GetWindowSize(RayBlastEngine.window, out int w, out int h))
+            if(!SDL.GetWindowSize(RayBlastEngine.currentWindowPane.window, out int w, out int h))
                 throw new RayBlastEngineException($"Could not get window size: {SDL.GetError()}");
             return new S32X2(w, h);
         }
@@ -57,12 +58,12 @@ public static class Graphics {
     public static Resolution CurrentDeviceResolution {
         get {
             uint displayID;
-            if(RayBlastEngine.window != IntPtr.Zero)
-                displayID = SDL.GetDisplayForWindow(RayBlastEngine.window);
+            if(RayBlastEngine.currentWindowPane.window != IntPtr.Zero)
+                displayID = SDL.GetDisplayForWindow(RayBlastEngine.currentWindowPane.window);
             else
                 displayID = SDL.GetPrimaryDisplay();
             if(displayID == 0)
-                throw new RayBlastEngineException("Cannot get display ID");
+                throw new RayBlastEngineException($"Cannot get display ID: {SDL.GetError()}");
             SDL.DisplayMode currentDisplayMode =
                 SDL.GetCurrentDisplayMode(displayID) ?? throw new RayBlastEngineException("Cannot get current display mode");
             return new Resolution {
@@ -76,8 +77,8 @@ public static class Graphics {
 
     public static List<Resolution> GetAllResolutions() {
         uint displayID;
-        if(RayBlastEngine.window != IntPtr.Zero)
-            displayID = SDL.GetDisplayForWindow(RayBlastEngine.window);
+        if(RayBlastEngine.currentWindowPane.window != IntPtr.Zero)
+            displayID = SDL.GetDisplayForWindow(RayBlastEngine.currentWindowPane.window);
         else
             displayID = SDL.GetPrimaryDisplay();
         if(displayID == 0)
@@ -98,30 +99,30 @@ public static class Graphics {
 
     public static void SetResolution(int width, int height,
                                      FullscreenMode fullscreenMode) {
-        if(RayBlastEngine.window == IntPtr.Zero)
+        if(RayBlastEngine.currentWindowPane.window == IntPtr.Zero)
             throw new RayBlastEngineException("Window not initialized");
         //TODO_URGENT: Check if certain SDL functions are called out of order
-        SDL.SetWindowSize(RayBlastEngine.window, width, height);
+        SDL.SetWindowSize(RayBlastEngine.currentWindowPane.window, width, height);
         switch(fullscreenMode) {
         case FullscreenMode.Windowed:
-            if(SDL.GetWindowFullscreenMode(RayBlastEngine.window) != null)
-                SDL.SetWindowFullscreen(RayBlastEngine.window, false);
+            if(SDL.GetWindowFullscreenMode(RayBlastEngine.currentWindowPane.window) != null)
+                SDL.SetWindowFullscreen(RayBlastEngine.currentWindowPane.window, false);
             Resolution currentDeviceResolution = CurrentDeviceResolution;
-            SDL.SetWindowPosition(RayBlastEngine.window, (int)((currentDeviceResolution.width - width) / 2f),
+            SDL.SetWindowPosition(RayBlastEngine.currentWindowPane.window, (int)((currentDeviceResolution.width - width) / 2f),
                                   (int)((CurrentDeviceResolution.height - height) / 2f));
-            SDL.SetWindowBordered(RayBlastEngine.window, true);
+            SDL.SetWindowBordered(RayBlastEngine.currentWindowPane.window, true);
             break;
         case FullscreenMode.BorderlessFullscreen:
-            SDL.SetWindowPosition(RayBlastEngine.window, 0, 0);
-            SDL.SetWindowBordered(RayBlastEngine.window, false);
+            SDL.SetWindowPosition(RayBlastEngine.currentWindowPane.window, 0, 0);
+            SDL.SetWindowBordered(RayBlastEngine.currentWindowPane.window, false);
             break;
         case FullscreenMode.ExclusiveFullScreen:
-            SDL.SetWindowBordered(RayBlastEngine.window, true);
-            if(SDL.GetWindowFullscreenMode(RayBlastEngine.window) == null)
-                SDL.SetWindowFullscreen(RayBlastEngine.window, true);
+            SDL.SetWindowBordered(RayBlastEngine.currentWindowPane.window, true);
+            if(SDL.GetWindowFullscreenMode(RayBlastEngine.currentWindowPane.window) == null)
+                SDL.SetWindowFullscreen(RayBlastEngine.currentWindowPane.window, true);
             break;
         }
-        SDL.SyncWindow(RayBlastEngine.window);
+        SDL.SyncWindow(RayBlastEngine.currentWindowPane.window);
     }
 
     internal static void SetConfigFlags() {

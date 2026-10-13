@@ -56,7 +56,7 @@ public sealed class GamepadTranslator {
         }
         return false;
     }
- 
+
     public bool IsButtonReleased(GamepadButton button) {
         foreach(GamepadBindingTranslation translation in translations) {
             if((translation.translationType & GamepadBindingTranslation.TranslationType.GamepadButton) != 0 && translation.gamepadButton == button) {

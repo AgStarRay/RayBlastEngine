@@ -186,8 +186,26 @@ public static partial class Utils {
         return a * b / GreatestCommonDivisor(a, b);
     }
 
+    public static long LeastCommonMultiple(long a, long b) {
+        return a * b / GreatestCommonDivisor(a, b);
+    }
+
     public static int GreatestCommonDivisor(int a, int b) {
-        return b == 0 ? a : GreatestCommonDivisor(b, a % b);
+        while(b != 0) {
+            var t = a;
+            a = b;
+            b = t % b;
+        }
+        return a;
+    }
+
+    public static long GreatestCommonDivisor(long a, long b) {
+        while(b != 0) {
+            var t = a;
+            a = b;
+            b = t % b;
+        }
+        return a;
     }
 
     public static string ParseText(string input, bool useSprites = false) {

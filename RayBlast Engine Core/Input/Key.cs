@@ -1,6 +1,6 @@
 ﻿namespace RayBlast;
 
-public enum Key {
+public enum Key : ushort {
     Null = 0,
     Back = 4,
     VolumeUp = 24, // 0x00000018

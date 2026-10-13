@@ -5,18 +5,19 @@ namespace RayBlast;
 
 public static class Game {
     internal static bool requestedClose = false;
+    internal static WindowPane closePane;
 
     #if DEBUG
-	//TODO_AFTER: Persist across builds
-	public static string customSongToPlay = "";
-	public static bool randomCustomSong = false;
+    //TODO_AFTER: Persist across builds
+    public static string customSongToPlay = "";
+    public static bool randomCustomSong = false;
     #endif
     public static GameSettings Settings { get; } = new();
 
     public static bool PlayingCustomMusic {
         get {
             #if DEBUG
-				return customSongToPlay != "";
+            return customSongToPlay != "";
             #else
             return false;
             #endif
@@ -48,15 +49,14 @@ public static class Game {
         }
         else {
             Process.Start(new ProcessStartInfo {
-                FileName = url,
-                UseShellExecute = true,
-                Verb = "open"
+                FileName = url, UseShellExecute = true, Verb = "open"
             });
         }
     }
 
     public static void Quit() {
         requestedClose = true;
+        closePane = new WindowPane();
     }
 
     public class GameSettings {

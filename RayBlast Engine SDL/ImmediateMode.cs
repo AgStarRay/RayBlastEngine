@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Buffers;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -29,8 +30,10 @@ public static unsafe class ImmediateMode {
 
     public static void ClearBackground(Color32 color32) {
         UnmanagedManager.AssertMainThread();
-        SDL.SetRenderDrawColor(RayBlastEngine.renderer, color32.r, color32.g, color32.b, color32.a);
-        SDL.RenderClear(RayBlastEngine.renderer);
+        SDL.SetRenderDrawColor(RayBlastEngine.currentWindowPane.renderer, color32.r, color32.g, color32.b, color32.a);
+        bool success = SDL.RenderClear(RayBlastEngine.currentWindowPane.renderer);
+        if(!success)
+            throw new RayBlastEngineException($"Failed to clear with background color: {SDL.GetError()}");
     }
 
     public static void Set3DMode(ImmediateCamera camera) {
@@ -51,22 +54,22 @@ public static unsafe class ImmediateMode {
 
     public static void End3DMode() {
         UnmanagedManager.AssertMainThread();
-        SDL.SetRenderTarget(RayBlastEngine.renderer, IntPtr.Zero);
-        SDL.SetRenderDrawBlendMode(RayBlastEngine.renderer, Graphics.BLEND_WITH_PREMULTIPLY_ALPHA);
+        SDL.SetRenderTarget(RayBlastEngine.currentWindowPane.renderer, IntPtr.Zero);
+        SDL.SetRenderDrawBlendMode(RayBlastEngine.currentWindowPane.renderer, Graphics.BLEND_WITH_PREMULTIPLY_ALPHA);
     }
 
     public static void BeginRenderTexture(RenderTexture renderTexture) {
         UnmanagedManager.AssertMainThread();
-        if(currentRenderTexture != null)
-            SDL.SetRenderTarget(RayBlastEngine.renderer, IntPtr.Zero);
+        // if(currentRenderTexture != null)
+        //     SDL.SetRenderTarget(RayBlastEngine.currentWindowPane.renderer, IntPtr.Zero);
         currentRenderTexture = renderTexture;
-        SDL.SetRenderTarget(RayBlastEngine.renderer, renderTexture.Texture.internalTexture);
+        SDL.SetRenderTarget(RayBlastEngine.currentWindowPane.renderer, renderTexture.Texture.internalTexture);
     }
 
     public static void EndRenderTexture() {
         UnmanagedManager.AssertMainThread();
         currentRenderTexture = null;
-        SDL.SetRenderTarget(RayBlastEngine.renderer, IntPtr.Zero);
+        SDL.SetRenderTarget(RayBlastEngine.currentWindowPane.renderer, IntPtr.Zero);
     }
 
     public static void DrawText(StringBuilder builderToCollapseIntoUTF8, S32X2 position,
@@ -192,11 +195,12 @@ public static unsafe class ImmediateMode {
                                   int size, Color32 color32,
                                   TextAlignmentFlags alignment, FontInstance fontInstance) {
         UnmanagedManager.AssertMainThread();
+        UnmanagedManager.AssertProperPointer((sbyte*)utf8Ptr);
         Font fontTtf = fontInstance.font;
         TTF.SetFontSize(fontTtf.fontPtr, size);
         if(fontTtf.textPtr == IntPtr.Zero) {
             if(rendererTextEngine == IntPtr.Zero)
-                rendererTextEngine = TTF.CreateRendererTextEngine(RayBlastEngine.renderer);
+                rendererTextEngine = TTF.CreateRendererTextEngine(RayBlastEngine.currentWindowPane.renderer);
             fontTtf.textPtr = TTF.CreateText(rendererTextEngine, fontTtf.fontPtr, "", UIntPtr.Zero);
         }
         SetTextString(fontTtf.textPtr, utf8Ptr, 0);
@@ -228,7 +232,7 @@ public static unsafe class ImmediateMode {
         TTF.SetFontSize(font.fontPtr, fontSize);
         if(font.textPtr == IntPtr.Zero) {
             if(rendererTextEngine == IntPtr.Zero)
-                rendererTextEngine = TTF.CreateRendererTextEngine(RayBlastEngine.renderer);
+                rendererTextEngine = TTF.CreateRendererTextEngine(RayBlastEngine.currentWindowPane.renderer);
             font.textPtr = TTF.CreateText(rendererTextEngine, font.fontPtr, "", UIntPtr.Zero);
         }
         TTF.SetTextString(font.textPtr, text, 0);
@@ -243,7 +247,7 @@ public static unsafe class ImmediateMode {
         TTF.SetFontSize(font.fontPtr, fontSize);
         if(font.textPtr == IntPtr.Zero) {
             if(rendererTextEngine == IntPtr.Zero)
-                rendererTextEngine = TTF.CreateRendererTextEngine(RayBlastEngine.renderer);
+                rendererTextEngine = TTF.CreateRendererTextEngine(RayBlastEngine.currentWindowPane.renderer);
             font.textPtr = TTF.CreateText(rendererTextEngine, font.fontPtr, "", UIntPtr.Zero);
         }
         SetTextString(font.textPtr, utf8Ptr, 0);
@@ -258,21 +262,29 @@ public static unsafe class ImmediateMode {
 
     public static void DrawPixels(ReadOnlySpan<Vector2> points, Color32 color32) {
         UnmanagedManager.AssertMainThread();
-        SDL.SetRenderDrawColor(RayBlastEngine.renderer, color32.r, color32.g, color32.b, color32.a);
-        //TODO: Figure out how to eliminate allocation
-        var temp = new SDL.FPoint[points.Length];
-        MemoryMarshal.Cast<Vector2, SDL.FPoint>(points).CopyTo(temp);
-        SDL.RenderPoints(RayBlastEngine.renderer, temp, points.Length);
+        SDL.SetRenderDrawColor(RayBlastEngine.currentWindowPane.renderer, color32.r, color32.g, color32.b, color32.a);
+        var temp = ArrayPool<SDL.FPoint>.Shared.Rent(points.Length);
+        try {
+            MemoryMarshal.Cast<Vector2, SDL.FPoint>(points).CopyTo(temp);
+            bool success = SDL.RenderPoints(RayBlastEngine.currentWindowPane.renderer, temp, points.Length);
+            if(!success)
+                throw new RayBlastEngineException($"Failed to draw pixels: {SDL.GetError()}");
+        }
+        finally {
+            ArrayPool<SDL.FPoint>.Shared.Return(temp);
+        }
     }
 
     public static void DrawRectangle(float x, float y,
                                      float width, float height,
                                      Color32 color32) {
         UnmanagedManager.AssertMainThread();
-        SDL.SetRenderDrawColor(RayBlastEngine.renderer, color32.r, color32.g, color32.b, color32.a);
-        SDL.RenderFillRect(RayBlastEngine.renderer, new SDL.FRect {
+        SDL.SetRenderDrawColor(RayBlastEngine.currentWindowPane.renderer, color32.r, color32.g, color32.b, color32.a);
+        bool success = SDL.RenderFillRect(RayBlastEngine.currentWindowPane.renderer, new SDL.FRect {
             X = x, Y = y, W = width, H = height
         });
+        if(!success)
+            throw new RayBlastEngineException($"Failed to draw rectangle: {SDL.GetError()}");
     }
 
     public static void DrawRectangleOutline(float x, float y,
@@ -283,19 +295,21 @@ public static unsafe class ImmediateMode {
         }
         else {
             UnmanagedManager.AssertMainThread();
-            SDL.SetRenderDrawColor(RayBlastEngine.renderer, color32.r, color32.g, color32.b, color32.a);
-            SDL.RenderFillRect(RayBlastEngine.renderer, new SDL.FRect {
+            SDL.SetRenderDrawColor(RayBlastEngine.currentWindowPane.renderer, color32.r, color32.g, color32.b, color32.a);
+            bool success = SDL.RenderFillRect(RayBlastEngine.currentWindowPane.renderer, new SDL.FRect {
                 X = x, Y = y, W = outlineSize, H = height
             });
-            SDL.RenderFillRect(RayBlastEngine.renderer, new SDL.FRect {
+            success &= SDL.RenderFillRect(RayBlastEngine.currentWindowPane.renderer, new SDL.FRect {
                 X = x, Y = y, W = width, H = outlineSize
             });
-            SDL.RenderFillRect(RayBlastEngine.renderer, new SDL.FRect {
+            success &= SDL.RenderFillRect(RayBlastEngine.currentWindowPane.renderer, new SDL.FRect {
                 X = x + width - outlineSize, Y = y, W = outlineSize, H = height
             });
-            SDL.RenderFillRect(RayBlastEngine.renderer, new SDL.FRect {
+            success &= SDL.RenderFillRect(RayBlastEngine.currentWindowPane.renderer, new SDL.FRect {
                 X = x, Y = y + height - outlineSize, W = width, H = outlineSize
             });
+            if(!success)
+                throw new RayBlastEngineException($"Failed to draw outlined rectangle: {SDL.GetError()}");
         }
     }
 
@@ -338,17 +352,9 @@ public static unsafe class ImmediateMode {
     public static void DrawImage(Texture texture, int x,
                                  int y, Color32 tint) {
         UnmanagedManager.AssertMainThread();
-        if(RayBlastEngine.renderer == IntPtr.Zero)
+        if(RayBlastEngine.currentWindowPane.renderer == IntPtr.Zero)
             throw new RayBlastEngineException("Renderer not initialized");
-        if(texture.internalTexture == IntPtr.Zero) {
-            IntPtr intPtr = texture.internalDataPtr;
-            if(intPtr == IntPtr.Zero)
-                throw new RayBlastEngineException("Attempted to render uninitialized texture");
-            texture.internalTexture = SDL.CreateTextureFromSurface(RayBlastEngine.renderer, intPtr);
-            if(texture.internalTexture == IntPtr.Zero)
-                throw new RayBlastEngineException($"Failed to create texture from surface: {SDL.GetError()}");
-            SDL.SetTextureBlendMode(texture.internalTexture, Graphics.BLEND_WITH_PREMULTIPLY_ALPHA);
-        }
+        texture.PerformUpdate();
         SDL.SetTextureColorMod(texture.internalTexture, tint.r, tint.g, tint.b);
         SDL.SetTextureAlphaMod(texture.internalTexture, tint.a);
         var srcRect = new SDL.FRect {
@@ -357,7 +363,9 @@ public static unsafe class ImmediateMode {
         var destRect = new SDL.FRect {
             X = x, Y = y, W = texture.Width, H = texture.Height
         };
-        SDL.RenderTexture(RayBlastEngine.renderer, texture.internalTexture, srcRect, destRect);
+        bool success = SDL.RenderTexture(RayBlastEngine.currentWindowPane.renderer, texture.internalTexture, srcRect, destRect);
+        if(!success)
+            throw new RayBlastEngineException($"Failed to draw texture: {SDL.GetError()}");
     }
 
     public static void DrawSubimage(TextureSubimage subimage, Vector2 destination,
@@ -385,18 +393,9 @@ public static unsafe class ImmediateMode {
         destination.X -= origin.X;
         destination.Y -= origin.Y;
         UnmanagedManager.AssertMainThread();
-        if(RayBlastEngine.renderer == IntPtr.Zero)
+        if(RayBlastEngine.currentWindowPane.renderer == IntPtr.Zero)
             throw new RayBlastEngineException("Renderer not initialized");
-        if(subimage.texture.internalTexture == IntPtr.Zero) {
-            IntPtr intPtr = subimage.texture.internalDataPtr;
-            if(intPtr == IntPtr.Zero)
-                throw new RayBlastEngineException("Attempted to render uninitialized texture");
-            IntPtr texture = SDL.CreateTextureFromSurface(RayBlastEngine.renderer, intPtr);
-            if(texture == IntPtr.Zero)
-                throw new RayBlastEngineException($"Failed to create texture from surface: {SDL.GetError()}");
-            subimage.texture.internalTexture = texture;
-            SDL.SetTextureBlendMode(subimage.texture.internalTexture, Graphics.BLEND_WITH_PREMULTIPLY_ALPHA);
-        }
+        subimage.texture.PerformUpdate();
         SDL.SetTextureColorMod(subimage.texture.internalTexture, tint.r, tint.g, tint.b);
         SDL.SetTextureAlphaMod(subimage.texture.internalTexture, tint.a);
         var srcRect = new SDL.FRect {
@@ -405,8 +404,11 @@ public static unsafe class ImmediateMode {
         var destRect = new SDL.FRect {
             X = destination.X, Y = destination.Y, W = destination.Z, H = destination.W
         };
-        SDL.RenderTextureRotated(RayBlastEngine.renderer, subimage.texture.internalTexture, srcRect, destRect, rotation, (IntPtr)(&origin),
-                                 SDL.FlipMode.None);
+        bool success = SDL.RenderTextureRotated(RayBlastEngine.currentWindowPane.renderer, subimage.texture.internalTexture, srcRect, destRect,
+                                                rotation, (IntPtr)(&origin),
+                                                SDL.FlipMode.None);
+        if(!success)
+            throw new RayBlastEngineException($"Failed to draw subimage: {SDL.GetError()}");
     }
 
     public static void BeginShaderMode(Shader shader) {

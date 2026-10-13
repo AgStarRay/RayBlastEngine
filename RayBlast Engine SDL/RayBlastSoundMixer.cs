@@ -22,8 +22,10 @@ internal class RayBlastSoundMixer : ISampleProvider {
     }
 
     public void Play(AudioVoice voice) {
-        if(sources.Count >= virtualVoiceCount)
-            Debug.LogWarning("Too many sounds enqueued to possibly handle");
+        if(sources.Count >= virtualVoiceCount) {
+            if(virtualVoiceCount > 0)
+                Debug.LogWarning("Too many sounds enqueued to possibly handle");
+        }
         else {
             //TODO_URGENT: Handle volume
             // stream.Volume = (float)RatioDecibelTransform(voice.volume);
@@ -46,11 +48,11 @@ internal class RayBlastSoundMixer : ISampleProvider {
         return sources.Contains(voice);
     }
 
-    public int Read(float[] buffer, int offset,
-                    int count) {
+    public int Read(Span<float> buffer) {
+        int count = buffer.Length;
         processedUpdates++;
         Time.dspTime += count / (double)(WaveFormat.SampleRate * 2);
-        var val2 = 0;
+        buffer.Clear();
         try {
             sourceBuffer = BufferHelpers.Ensure(sourceBuffer, count);
             for(int i1 = sources.Count - 1; i1 >= 0; --i1) {
@@ -59,6 +61,20 @@ internal class RayBlastSoundMixer : ISampleProvider {
                 AudioVoice voice = (AudioVoice?)sources[i1] ?? throw new NullReferenceException();
                 if(voice.sampleProvider == null)
                     continue;
+                float leftVol = Mathd.Clamp01(1f - voice.pan) * voice.volume;
+                float rightVol = Mathd.Clamp01(1f + voice.pan) * voice.volume;
+                if(voice.playbackStream != null) {
+                    if(voice.skipFrom != voice.skipTo) {
+                        voice.playbackStream.skipFrom = voice.skipFrom;
+                        voice.playbackStream.skipTo = voice.skipTo;
+                    }
+                    else if(voice is { source: SoundClip clip, looping: true } && clip.loopEnd > clip.loopStart) {
+                        voice.playbackStream.skipFrom = clip.loopEnd;
+                        voice.playbackStream.skipTo = clip.loopStart;
+                    }
+                    else
+                        voice.playbackStream.skipFrom = voice.playbackStream.skipTo;
+                }
                 if(voice.finalMixSampleProvider == null) {
                     ISampleProvider? newMix = voice.sampleProvider;
                     if(newMix.WaveFormat.Channels != WaveFormat.Channels) {
@@ -71,16 +87,19 @@ internal class RayBlastSoundMixer : ISampleProvider {
                 }
                 RayBlastWdlResampler source = voice.finalMixSampleProvider;
                 source.pitch = voice.pitch;
-                int val1 = source.Read(sourceBuffer, 0, count);
+                int val1 = source.Read(sourceBuffer.AsSpan(0, count));
                 if(voice.volume > 0f && i1 < realVoiceCount) {
-                    int num = offset;
+                    int num = 0;
                     for(var i2 = 0; i2 < val1; ++i2) {
-                        if(i2 >= val2)
-                            buffer[num++] = sourceBuffer[i2] * voice.volume;
-                        else
-                            buffer[num++] += sourceBuffer[i2] * voice.volume;
+                        float sample = sourceBuffer[i2];
+                        if(WaveFormat.Channels == 2) {
+                            if((i2 & 1) == 1)
+                                sample *= rightVol;
+                            else
+                                sample *= leftVol;
+                        }
+                        buffer[num++] += sample;
                     }
-                    val2 = Math.Max(val1, val2);
                 }
                 if(val1 < count) {
                     sources.RemoveAt(i1);
@@ -89,12 +108,6 @@ internal class RayBlastSoundMixer : ISampleProvider {
         }
         catch(Exception e) {
             Debug.LogException(e);
-        }
-        if(val2 < count) {
-            int num = offset + val2;
-            while(num < offset + count) {
-                buffer[num++] = 0.0f;
-            }
         }
         return count;
     }

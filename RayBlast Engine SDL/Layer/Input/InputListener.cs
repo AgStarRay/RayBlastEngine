@@ -107,7 +107,7 @@ public class InputListener : IDisposable {
                 if(!LISTENERS.Contains(this)) {
                     LISTENERS.Add(this);
                     if(LISTENERS.Count > 999)
-                        Debug.LogWarning("Too many input listeners", false);
+                        Debug.LogWarning("Too many input listeners");
                 }
             }
             else {
@@ -348,7 +348,6 @@ public class InputListener : IDisposable {
     }
 
     public void InjectKeyEvent(InputKeyEvent e) {
-        
     }
 
     public void Dispose() {
